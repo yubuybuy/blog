@@ -12,7 +12,7 @@ export interface Post {
     }
     alt?: string
   }
-  body?: any[]
+  body?: Record<string, unknown>[]
   author?: Author
   categories?: Category[]
 }
@@ -24,7 +24,7 @@ export interface Author {
       _ref: string
     }
   }
-  bio?: any[]
+  bio?: Record<string, unknown>[]
 }
 
 export interface Category {

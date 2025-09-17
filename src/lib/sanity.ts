@@ -10,6 +10,6 @@ export const client = createClient({
 
 const builder = imageUrlBuilder(client)
 
-export const urlFor = (source: any) => {
+export const urlFor = (source: Record<string, unknown>) => {
   return builder.image(source)
 }
