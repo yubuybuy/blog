@@ -1,0 +1,88 @@
+name: AI Auto Publisher
+
+on:
+  # 当resources.json文件更新时触发
+  push:
+    paths:
+      - 'resources.json'
+    branches:
+      - main
+
+  # 定时触发 (每天运行3次)
+  schedule:
+    - cron: '0 9,15,21 * * *'  # 每天9点、15点、21点
+
+  # 手动触发
+  workflow_dispatch:
+    inputs:
+      publish_count:
+        description: 'Number of posts to publish'
+        required: false
+        default: '1'
+
+jobs:
+  auto-publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check for new resources
+        id: check-resources
+        run: |
+          # 检查resources.json是否有变化
+          if git diff --name-only HEAD~1 | grep -q "resources.json"; then
+            echo "resources_changed=true" >> $GITHUB_OUTPUT
+          else
+            echo "resources_changed=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Run AI Auto Publisher
+        if: steps.check-resources.outputs.resources_changed == 'true' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          COHERE_API_KEY: ${{ secrets.COHERE_API_KEY }}
+          SANITY_API_TOKEN: ${{ secrets.SANITY_API_TOKEN }}
+          AUTO_PUBLISH: 'true'
+          PUBLISH_DELAY: '30'
+          PUBLISH_COUNT: ${{ github.event.inputs.publish_count || '1' }}
+        run: |
+          npx ts-node scripts/auto-publisher.ts
+
+      - name: Update processed resources
+        if: success()
+        run: |
+          # 备份已处理的资源
+          timestamp=$(date +%Y%m%d_%H%M%S)
+          cp resources.json "processed/resources_${timestamp}.json"
+
+          # 清空resources.json或标记已处理
+          echo "[]" > resources.json
+
+      - name: Commit processed status
+        if: success()
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add resources.json processed/
+          git commit -m "🤖 Auto-processed resources on $(date)" || exit 0
+          git push
+
+      - name: Send notification
+        if: always()
+        run: |
+          if [ "${{ job.status }}" == "success" ]; then
+            echo "✅ AI Auto Publisher completed successfully"
+          else
+            echo "❌ AI Auto Publisher failed"
+          fi

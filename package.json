@@ -6,7 +6,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "auto-publish": "ts-node scripts/auto-publisher.ts",
+    "test-publisher": "ts-node scripts/test-publisher.ts",
+    "simple-test": "ts-node scripts/simple-test.ts"
   },
   "dependencies": {
     "@portabletext/react": "^3.0.15",
@@ -29,6 +32,7 @@
     "eslint": "^9",
     "eslint-config-next": "15.5.3",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "ts-node": "^10.9.1"
   }
 }
