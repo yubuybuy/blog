@@ -1,5 +1,7 @@
-import { AIContentGenerator, AIImageGenerator, ResourceInfo } from '../src/lib/ai-services';
+import { AIContentGenerator, AIImageGenerator, ResourceInfo } from '../src/lib/ai-services.js';
 import { createClient } from '@sanity/client';
+import fs from 'fs';
+import path from 'path';
 
 const sanityClient = createClient({
   projectId: process.env.NEXT_PUBLIC_SANITY_PROJECT_ID || 'w7iihdoh',
@@ -215,7 +217,6 @@ export class AutoPublisher {
   // 从JSON文件加载资源信息
   static async loadResourcesFromFile(filePath: string): Promise<ResourceInfo[]> {
     try {
-      const fs = await import('fs');
       const content = fs.readFileSync(filePath, 'utf-8');
       const data = JSON.parse(content);
 
