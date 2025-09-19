@@ -1,0 +1,57 @@
+name: Debug AI System
+
+on:
+  # 手动触发调试
+  workflow_dispatch:
+
+jobs:
+  debug:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run System Debug
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          COHERE_API_KEY: ${{ secrets.COHERE_API_KEY }}
+          SANITY_API_TOKEN: ${{ secrets.SANITY_API_TOKEN }}
+          NEXT_PUBLIC_SANITY_PROJECT_ID: w7iihdoh
+          NEXT_PUBLIC_SANITY_DATASET: production
+          AUTO_PUBLISH: 'true'
+        run: |
+          echo "🔍 开始系统诊断..."
+          echo "📊 Environment Variables:"
+          echo "- Node version: $(node --version)"
+          echo "- NPM version: $(npm --version)"
+          echo "- Working directory: $(pwd)"
+          echo "- Files in scripts/: $(ls -la scripts/)"
+
+          echo ""
+          echo "🧪 运行系统诊断脚本..."
+          npx ts-node scripts/debug-system.ts
+
+          echo ""
+          echo "📋 诊断完成！检查上方输出了解详情。"
+
+      - name: Check Sanity Content
+        env:
+          SANITY_API_TOKEN: ${{ secrets.SANITY_API_TOKEN }}
+        run: |
+          echo "🗄️ 检查Sanity内容..."
+          curl -H "Authorization: Bearer $SANITY_API_TOKEN" \
+               "https://w7iihdoh.api.sanity.io/v2024-01-01/data/query/production?query=*%5B_type%20%3D%3D%20%22post%22%5D%20%7C%20order(_createdAt%20desc)%20%5B0...3%5D%7B_id%2C%20title%2C%20_createdAt%7D" \
+               | head -20
