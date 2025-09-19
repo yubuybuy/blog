@@ -1,0 +1,50 @@
+name: Cleanup and Restart
+
+on:
+  # 手动触发清理和重启
+  workflow_dispatch:
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Cleanup Script
+        env:
+          SANITY_API_TOKEN: ${{ secrets.SANITY_API_TOKEN }}
+        run: |
+          echo "🧹 开始清理所有现有文章..."
+          node scripts/cleanup-restart.mjs
+
+      - name: Commit cleanup status
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+
+          # 创建空的published-titles.txt确保重新开始
+          mkdir -p processed
+          touch processed/published-titles.txt
+
+          git add processed/
+          git commit -m "🧹 清理完成，重新开始发布流程" || echo "No changes to commit"
+          git push || echo "Nothing to push"
+
+      - name: Trigger AI Publisher
+        run: |
+          echo "🚀 清理完成！"
+          echo "💡 接下来resources.json的任何更新都会触发新的发布流程"
