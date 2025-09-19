@@ -194,12 +194,13 @@ class SimplePublisher {
       }
 
       // 创建新分类
+      const categorySlug = this.generateCategorySlug(categoryName);
       const newCategory = await sanityClient.create({
         _type: 'category',
         title: categoryName,
         slug: {
           _type: 'slug',
-          current: categoryName.toLowerCase().replace(/\s+/g, '-')
+          current: categorySlug
         },
         description: `${categoryName}相关资源分享`
       });
@@ -219,6 +220,24 @@ class SimplePublisher {
       .replace(/[^\w\s-]/g, '')
       .replace(/\s+/g, '-')
       .substring(0, 50) + '-' + Date.now();
+  }
+
+  generateCategorySlug(categoryName) {
+    // 中文分类名转英文slug
+    const categoryMap = {
+      '电影': 'movies',
+      '软件': 'software',
+      '教育': 'education',
+      '游戏': 'games',
+      '音乐': 'music',
+      '图书': 'books',
+      '其他': 'others'
+    };
+
+    return categoryMap[categoryName] || categoryName
+      .toLowerCase()
+      .replace(/[^\w\s-]/g, '')
+      .replace(/\s+/g, '-');
   }
 
   convertToBlockContent(markdown) {
