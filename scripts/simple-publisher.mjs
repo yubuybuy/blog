@@ -69,7 +69,7 @@ class SimpleContentGenerator {
     const template = templates[resourceInfo.category] || templates.软件;
 
     return {
-      title: `${template.titlePrefix}分享`,
+      title: resourceInfo.title, // 使用用户提供的标题
       excerpt: `为您整理的${resourceInfo.category}资源，${resourceInfo.description?.substring(0, 50)}...`,
       content: template.contentTemplate,
       tags: resourceInfo.tags || ['资源', '分享'],
