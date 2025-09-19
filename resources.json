@@ -2,64 +2,30 @@
   {
     "title": "2024最新电影合集",
     "category": "电影",
-    "type": "影视资源",
     "files": [
       "https://pan.baidu.com/s/xxx",
       "https://www.aliyundrive.com/s/xxx"
     ],
     "tags": ["2024", "电影", "高清", "合集"],
-    "description": "包含2024年最新上映的热门电影，画质清晰，资源完整",
-    "metadata": {
-      "quality": "高清",
-      "format": "MP4",
-      "size": "2GB-8GB",
-      "language": "中文字幕"
-    }
+    "description": "包含2024年最新上映的热门电影，画质清晰，资源完整"
   },
   {
     "title": "办公软件工具包",
     "category": "软件",
-    "type": "实用工具",
     "files": [
       "https://pan.baidu.com/s/yyy"
     ],
     "tags": ["办公", "效率", "工具", "软件"],
-    "description": "精选办公软件合集，提升工作效率必备工具",
-    "metadata": {
-      "compatibility": "Windows/Mac",
-      "version": "最新版",
-      "license": "免费版"
-    }
+    "description": "精选办公软件合集，提升工作效率必备工具"
   },
   {
     "title": "学习资料大全",
     "category": "教育",
-    "type": "学习资源",
     "files": [
       "https://pan.baidu.com/s/zzz",
       "https://www.123pan.com/s/zzz"
     ],
     "tags": ["学习", "教育", "资料", "课程"],
-    "description": "涵盖多个领域的优质学习资料，适合自学提升",
-    "metadata": {
-      "subjects": ["编程", "设计", "语言"],
-      "level": "初级到高级",
-      "format": "PDF+视频"
-    }
-  },
-  {
-    "title": "AI生成测试资源-修复版",
-    "category": "测试",
-    "type": "系统测试",
-    "files": [
-      "https://pan.baidu.com/s/ai_test_fix_123"
-    ],
-    "tags": ["AI", "测试", "修复", "权限"],
-    "description": "测试修复权限问题后的AI自动内容生成和发布系统",
-    "metadata": {
-      "purpose": "权限修复测试",
-      "generated_at": "2024-12-19",
-      "test_version": "v2.0-fixed"
-    }
+    "description": "涵盖多个领域的优质学习资料，适合自学提升"
   }
 ]

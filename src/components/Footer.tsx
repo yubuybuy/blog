@@ -72,9 +72,16 @@ export default async function Footer() {
         </div>
 
         <div className="mt-8 border-t border-gray-200 pt-8">
-          <p className="text-center text-gray-500">
-            © {new Date().getFullYear()} {settings.title}. {settings.copyrightText}
-          </p>
+          <div className="text-center space-y-2">
+            <p className="text-sm text-gray-600">
+              <strong>⚠️ 免责声明：</strong>
+              本站仅提供信息分享交流，所有资源均来源于网络，仅供学习参考使用。
+              如有版权问题，请联系删除。支持正版，尊重版权。
+            </p>
+            <p className="text-center text-gray-500">
+              © {new Date().getFullYear()} {settings.title}. {settings.copyrightText}
+            </p>
+          </div>
         </div>
       </div>
     </footer>

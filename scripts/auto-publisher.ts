@@ -120,6 +120,10 @@ export class AutoPublisher {
     if (this.config.autoPublish) {
       const result = await sanityClient.create(post);
       console.log(`Published to Sanity: ${result._id}`);
+
+      // 5. 标记为已发布
+      await AutoPublisher.markAsPublished(resourceInfo.title);
+
       return result;
     } else {
       console.log('Auto publish disabled, content generated only');
@@ -214,20 +218,61 @@ export class AutoPublisher {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
 
-  // 从JSON文件加载资源信息
+  // 从JSON文件加载资源信息，支持增量发布
   static async loadResourcesFromFile(filePath: string): Promise<ResourceInfo[]> {
     try {
       const content = fs.readFileSync(filePath, 'utf-8');
       const data = JSON.parse(content);
 
+      let resources: ResourceInfo[] = [];
       if (Array.isArray(data)) {
-        return data;
+        resources = data;
       } else {
-        return [data];
+        resources = [data];
       }
+
+      // 过滤掉已发布的资源（简单的重复检测）
+      const processedFile = './processed/published-titles.txt';
+      let publishedTitles: string[] = [];
+
+      try {
+        if (fs.existsSync(processedFile)) {
+          const publishedContent = fs.readFileSync(processedFile, 'utf-8');
+          publishedTitles = publishedContent.split('\n').filter(line => line.trim());
+        }
+      } catch (error) {
+        console.log('No previous published records found, will publish all resources');
+      }
+
+      // 只返回未发布的资源
+      const newResources = resources.filter(resource =>
+        !publishedTitles.includes(resource.title)
+      );
+
+      console.log(`📊 总资源数: ${resources.length}, 新资源: ${newResources.length}`);
+
+      return newResources;
     } catch (error) {
       console.error('Failed to load resources from file:', error);
       return [];
+    }
+  }
+
+  // 记录已发布的资源
+  static async markAsPublished(title: string): Promise<void> {
+    try {
+      const processedFile = './processed/published-titles.txt';
+
+      // 确保目录存在
+      if (!fs.existsSync('./processed')) {
+        fs.mkdirSync('./processed', { recursive: true });
+      }
+
+      // 追加到已发布列表
+      fs.appendFileSync(processedFile, title + '\n');
+      console.log(`✅ 标记为已发布: ${title}`);
+    } catch (error) {
+      console.error('Failed to mark as published:', error);
     }
   }
 }
