@@ -33,11 +33,12 @@ jobs:
         uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 2  # 获取足够的历史记录用于比较
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'  # 升级到Node.js 20
           cache: 'npm'
 
       - name: Install dependencies
@@ -49,10 +50,13 @@ jobs:
           # 检查resources.json是否有变化或手动触发
           if [ "${{ github.event_name }}" = "workflow_dispatch" ] || [ "${{ github.event_name }}" = "schedule" ]; then
             echo "resources_changed=true" >> $GITHUB_OUTPUT
-          elif git diff --name-only HEAD~1 | grep -q "resources.json"; then
+            echo "触发方式: ${{ github.event_name }}"
+          elif git diff --name-only HEAD~1 HEAD 2>/dev/null | grep -q "resources.json"; then
             echo "resources_changed=true" >> $GITHUB_OUTPUT
+            echo "检测到resources.json变化"
           else
             echo "resources_changed=false" >> $GITHUB_OUTPUT
+            echo "未检测到resources.json变化"
           fi
 
       - name: Run AI Auto Publisher
