@@ -46,10 +46,15 @@ async function cleanAndRepublish() {
     };
 
     for (const category of categories) {
+      if (!category.title) {
+        console.log(`⚠️ 跳过无标题分类: ${category._id}`);
+        continue;
+      }
+
       const newSlug = categoryMap[category.title] || category.title
         .toLowerCase()
-        .replace(/[^\\w\\s-]/g, '')
-        .replace(/\\s+/g, '-');
+        .replace(/[^\w\s-]/g, '')
+        .replace(/\s+/g, '-');
 
       if (category.slug?.current !== newSlug) {
         await sanityClient
