@@ -42,7 +42,7 @@ jobs:
 
           echo ""
           echo "🧪 运行系统诊断脚本..."
-          npx ts-node --esm scripts/debug-system.ts
+          node scripts/debug-system.mjs
 
           echo ""
           echo "📋 诊断完成！检查上方输出了解详情。"
