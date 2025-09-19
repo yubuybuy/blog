@@ -45,6 +45,10 @@ jobs:
           node scripts/debug-system.mjs
 
           echo ""
+          echo "🌐 运行网站数据诊断..."
+          node scripts/diagnose-website.mjs
+
+          echo ""
           echo "📋 诊断完成！检查上方输出了解详情。"
 
       - name: Check Sanity Content
