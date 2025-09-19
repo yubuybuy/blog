@@ -46,5 +46,20 @@
       "level": "初级到高级",
       "format": "PDF+视频"
     }
+  },
+  {
+    "title": "AI生成测试资源",
+    "category": "测试",
+    "type": "系统测试",
+    "files": [
+      "https://pan.baidu.com/s/ai_test_123"
+    ],
+    "tags": ["AI", "测试", "自动化", "生成"],
+    "description": "用于测试AI自动内容生成和发布系统的示例资源",
+    "metadata": {
+      "purpose": "系统测试",
+      "generated_at": "2024-12-19",
+      "test_version": "v1.0"
+    }
   }
 ]
