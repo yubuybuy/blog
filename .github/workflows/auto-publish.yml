@@ -78,7 +78,7 @@ jobs:
           echo "- PUBLISH_COUNT: $PUBLISH_COUNT"
 
           echo "📝 Running AI content generation..."
-          node scripts/simple-publisher.mjs
+          node scripts/ai-publisher.mjs
 
           echo "✅ AI Auto Publisher completed!"
 
