@@ -118,8 +118,6 @@ const portableTextComponents = {
               if (typeof child === 'string' && child.match(/!\[.*?\]\(.*?\)/)) {
                 const imageMatch = child.match(/!\[(.*?)\]\((.*?)\)/);
                 if (imageMatch) {
-                  console.log('发现图片markdown:', child);
-                  console.log('图片URL:', imageMatch[2]);
                   return (
                     <div key={index} className="my-6">
                       <Image
@@ -129,11 +127,7 @@ const portableTextComponents = {
                         height={400}
                         className="rounded-lg w-full"
                         style={{ height: 'auto' }}
-                        onLoad={() => console.log('图片加载成功:', imageMatch[2])}
-                        onError={(e) => {
-                          console.log('图片加载失败:', imageMatch[2]);
-                          e.currentTarget.style.display = 'none';
-                        }}
+                        unoptimized
                       />
                       {imageMatch[1] && (
                         <p className="text-center text-sm text-gray-600 mt-2">{imageMatch[1]}</p>
@@ -180,6 +174,7 @@ function MarkdownContent({ content }: { content: string }) {
                   height={400}
                   className="rounded-lg w-full"
                   style={{ height: 'auto' }}
+                  unoptimized // 避免Next.js图片优化问题
                 />
                 {imageMatch[1] && (
                   <p className="text-center text-sm text-gray-600 mt-2">{imageMatch[1]}</p>
