@@ -257,11 +257,8 @@ function generateWithTemplate(resourceInfo: ResourceInfo): GeneratedContent {
 
 // 处理图片插入
 function processImagesInContent(content: string, imagePrompt: string): string {
-  // 生成相关的图片URL (使用Unsplash或Picsum)
-  const imageUrl = generateImageUrl(imagePrompt);
-
-  // 替换IMAGE_PLACEHOLDER为实际图片
-  return content.replace(/!\[([^\]]*)\]\(IMAGE_PLACEHOLDER\)/g, `![$1](${imageUrl})`);
+  // 暂时移除图片占位符，避免Sanity引用错误
+  return content.replace(/!\[([^\]]*)\]\(IMAGE_PLACEHOLDER\)/g, '');
 }
 
 // 生成图片URL
@@ -333,17 +330,16 @@ function convertToBlockContent(markdown: string) {
         children: [{ _type: 'span', text: line.substring(4) }]
       });
     } else if (line.match(/!\[.*\]\(.*\)/)) {
-      // 处理图片
+      // 处理图片 - 转换为普通文本描述而不是图片引用
       const imageMatch = line.match(/!\[(.*)\]\((.*)\)/);
       if (imageMatch) {
         blocks.push({
-          _type: 'image',
-          asset: {
-            _type: 'reference',
-            _ref: 'image-placeholder' // 简化处理，实际应该上传图片到Sanity
-          },
-          alt: imageMatch[1],
-          caption: imageMatch[1]
+          _type: 'block',
+          style: 'normal',
+          children: [{
+            _type: 'span',
+            text: `[图片: ${imageMatch[1]}]`
+          }]
         });
       }
     } else if (line.trim()) {
