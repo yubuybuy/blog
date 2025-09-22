@@ -8,6 +8,7 @@ interface ResourceInfo {
   files: string[];
   tags: string[];
   description?: string;
+  downloadLink?: string; // 新增网盘链接字段
 }
 
 interface GeneratedContent {
@@ -24,7 +25,8 @@ export default function AIContentGenerator() {
     category: '电影',
     files: [],
     tags: [],
-    description: ''
+    description: '',
+    downloadLink: '' // 初始化网盘链接
   })
   const [isGenerating, setIsGenerating] = useState(false)
   const [isPublishing, setIsPublishing] = useState(false)
@@ -181,6 +183,20 @@ export default function AIContentGenerator() {
                 rows={3}
                 className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-2">网盘链接</label>
+              <input
+                type="url"
+                value={resource.downloadLink}
+                onChange={(e) => setResource(prev => ({ ...prev, downloadLink: e.target.value }))}
+                placeholder="例如：https://pan.baidu.com/s/xxx 或其他网盘链接"
+                className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                支持百度网盘、阿里云盘、夸克网盘等各种网盘链接
+              </p>
             </div>
 
             <div className="flex gap-3">

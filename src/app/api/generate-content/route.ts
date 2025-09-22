@@ -19,6 +19,7 @@ interface ResourceInfo {
   files: string[];
   tags: string[];
   description?: string;
+  downloadLink?: string; // 新增网盘链接字段
 }
 
 interface GeneratedContent {
@@ -35,11 +36,13 @@ async function generateWithZhipu(resourceInfo: ResourceInfo): Promise<GeneratedC
   if (!apiKey) return null;
 
   try {
-    // 使用接地气模板
-    const prompt = PROMPT_TEMPLATES.casual
+    // 使用真实博客模板并替换变量
+    const prompt = PROMPT_TEMPLATES.realistic
+      .replace('{title}', resourceInfo.title)
       .replace('{category}', resourceInfo.category)
       .replace('{tags}', resourceInfo.tags.join(', '))
-      .replace('{description}', resourceInfo.description || '暂无详细描述');
+      .replace('{description}', resourceInfo.description || '暂无详细描述')
+      .replace('{downloadLink}', resourceInfo.downloadLink || '暂无下载链接');
 
     const response = await fetch('https://open.bigmodel.cn/api/paas/v4/chat/completions', {
       method: 'POST',
@@ -98,11 +101,13 @@ async function generateWithGemini(resourceInfo: ResourceInfo): Promise<Generated
   if (!apiKey) return null;
 
   try {
-    // 使用接地气模板并替换变量
-    const prompt = PROMPT_TEMPLATES.casual
+    // 使用真实博客模板并替换变量
+    const prompt = PROMPT_TEMPLATES.realistic
+      .replace('{title}', resourceInfo.title)
       .replace('{category}', resourceInfo.category)
       .replace('{tags}', resourceInfo.tags.join(', '))
-      .replace('{description}', resourceInfo.description || '暂无详细描述');
+      .replace('{description}', resourceInfo.description || '暂无详细描述')
+      .replace('{downloadLink}', resourceInfo.downloadLink || '暂无下载链接');
 
     console.log('发送Gemini请求...');
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
@@ -168,11 +173,13 @@ async function generateWithCohere(resourceInfo: ResourceInfo): Promise<Generated
   if (!apiKey) return null;
 
   try {
-    // 使用接地气模板并替换变量
-    const prompt = PROMPT_TEMPLATES.casual
+    // 使用真实博客模板并替换变量
+    const prompt = PROMPT_TEMPLATES.realistic
+      .replace('{title}', resourceInfo.title)
       .replace('{category}', resourceInfo.category)
       .replace('{tags}', resourceInfo.tags.join(', '))
-      .replace('{description}', resourceInfo.description || '暂无详细描述');
+      .replace('{description}', resourceInfo.description || '暂无详细描述')
+      .replace('{downloadLink}', resourceInfo.downloadLink || '暂无下载链接');
 
     console.log('发送Cohere请求...');
     const response = await fetch('https://api.cohere.ai/v1/chat', {
@@ -248,9 +255,32 @@ function generateWithTemplate(resourceInfo: ResourceInfo): GeneratedContent {
   };
 }
 
+// 处理图片插入
+function processImagesInContent(content: string, imagePrompt: string): string {
+  // 生成相关的图片URL (使用Unsplash或Picsum)
+  const imageUrl = generateImageUrl(imagePrompt);
+
+  // 替换IMAGE_PLACEHOLDER为实际图片
+  return content.replace(/!\[([^\]]*)\]\(IMAGE_PLACEHOLDER\)/g, `![$1](${imageUrl})`);
+}
+
+// 生成图片URL
+function generateImageUrl(prompt: string): string {
+  // 使用Picsum Photos (免费图片服务)
+  const imageId = Math.floor(Math.random() * 1000) + 1;
+  return `https://picsum.photos/800/400?random=${imageId}`;
+
+  // 或者使用Unsplash (需要API key)
+  // const keywords = prompt.split(' ').slice(0, 3).join(',');
+  // return `https://source.unsplash.com/800x400/?${keywords}`;
+}
+
 // 发布内容到Sanity
 async function publishToSanity(content: GeneratedContent, resourceInfo: ResourceInfo) {
   try {
+    // 处理内容中的图片占位符
+    const processedContent = processImagesInContent(content.content, content.imagePrompt);
+
     const post = {
       _type: 'post',
       title: content.title,
@@ -263,7 +293,7 @@ async function publishToSanity(content: GeneratedContent, resourceInfo: Resource
       },
       excerpt: content.excerpt,
       publishedAt: new Date().toISOString(),
-      body: convertToBlockContent(content.content),
+      body: convertToBlockContent(processedContent), // 使用处理后的内容
       // 添加必要的字段让文章能够显示
       author: null, // 可以设置为null或者创建默认作者
       categories: [], // 空分类数组
@@ -296,16 +326,54 @@ function convertToBlockContent(markdown: string) {
         style: 'h2',
         children: [{ _type: 'span', text: line.substring(3) }]
       });
+    } else if (line.startsWith('### ')) {
+      blocks.push({
+        _type: 'block',
+        style: 'h3',
+        children: [{ _type: 'span', text: line.substring(4) }]
+      });
+    } else if (line.match(/!\[.*\]\(.*\)/)) {
+      // 处理图片
+      const imageMatch = line.match(/!\[(.*)\]\((.*)\)/);
+      if (imageMatch) {
+        blocks.push({
+          _type: 'image',
+          asset: {
+            _type: 'reference',
+            _ref: 'image-placeholder' // 简化处理，实际应该上传图片到Sanity
+          },
+          alt: imageMatch[1],
+          caption: imageMatch[1]
+        });
+      }
     } else if (line.trim()) {
+      // 处理包含链接的普通文本
+      const children = parseInlineMarkdown(line);
       blocks.push({
         _type: 'block',
         style: 'normal',
-        children: [{ _type: 'span', text: line }]
+        children: children
       });
     }
   }
 
   return blocks;
+}
+
+// 解析行内markdown（粗体、链接等）
+function parseInlineMarkdown(text: string) {
+  const children = [];
+  let currentText = text;
+
+  // 简单处理，可以进一步优化
+  if (currentText.includes('**') || currentText.includes('[')) {
+    // 复杂文本处理 - 这里简化处理
+    children.push({ _type: 'span', text: currentText });
+  } else {
+    children.push({ _type: 'span', text: currentText });
+  }
+
+  return children;
 }
 
 // API路由处理器
