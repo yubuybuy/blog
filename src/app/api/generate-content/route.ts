@@ -35,8 +35,8 @@ async function generateWithZhipu(resourceInfo: ResourceInfo): Promise<GeneratedC
   if (!apiKey) return null;
 
   try {
-    // 使用增强模板
-    const prompt = PROMPT_TEMPLATES.enhanced
+    // 使用接地气模板
+    const prompt = PROMPT_TEMPLATES.casual
       .replace('{category}', resourceInfo.category)
       .replace('{tags}', resourceInfo.tags.join(', '))
       .replace('{description}', resourceInfo.description || '暂无详细描述');
@@ -97,8 +97,8 @@ async function generateWithGemini(resourceInfo: ResourceInfo): Promise<Generated
   if (!apiKey) return null;
 
   try {
-    // 使用增强模板并替换变量
-    const prompt = PROMPT_TEMPLATES.enhanced
+    // 使用接地气模板并替换变量
+    const prompt = PROMPT_TEMPLATES.casual
       .replace('{category}', resourceInfo.category)
       .replace('{tags}', resourceInfo.tags.join(', '))
       .replace('{description}', resourceInfo.description || '暂无详细描述');
@@ -161,8 +161,8 @@ async function generateWithCohere(resourceInfo: ResourceInfo): Promise<Generated
   if (!apiKey) return null;
 
   try {
-    // 使用基础模板并替换变量
-    const prompt = PROMPT_TEMPLATES.basic
+    // 使用接地气模板并替换变量
+    const prompt = PROMPT_TEMPLATES.casual
       .replace('{category}', resourceInfo.category)
       .replace('{tags}', resourceInfo.tags.join(', '))
       .replace('{description}', resourceInfo.description || '暂无详细描述');
