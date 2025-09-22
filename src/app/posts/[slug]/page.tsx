@@ -107,26 +107,45 @@ const portableTextComponents = {
     ),
     normal: ({ children }: any) => {
       // 检查是否包含图片markdown
-      const textContent = children[0];
-      if (typeof textContent === 'string' && textContent.match(/!\[.*?\]\(.*?\)/)) {
-        const imageMatch = textContent.match(/!\[(.*?)\]\((.*?)\)/);
-        if (imageMatch) {
-          return (
-            <div className="my-6">
-              <Image
-                src={imageMatch[2]}
-                alt={imageMatch[1] || 'Generated image'}
-                width={800}
-                height={400}
-                className="rounded-lg w-full"
-                style={{ height: 'auto' }}
-              />
-              {imageMatch[1] && (
-                <p className="text-center text-sm text-gray-600 mt-2">{imageMatch[1]}</p>
-              )}
-            </div>
-          );
-        }
+      const hasImageMarkdown = children.some((child: any) =>
+        typeof child === 'string' && child.match(/!\[.*?\]\(.*?\)/)
+      );
+
+      if (hasImageMarkdown) {
+        return (
+          <div>
+            {children.map((child: any, index: number) => {
+              if (typeof child === 'string' && child.match(/!\[.*?\]\(.*?\)/)) {
+                const imageMatch = child.match(/!\[(.*?)\]\((.*?)\)/);
+                if (imageMatch) {
+                  console.log('发现图片markdown:', child);
+                  console.log('图片URL:', imageMatch[2]);
+                  return (
+                    <div key={index} className="my-6">
+                      <Image
+                        src={imageMatch[2]}
+                        alt={imageMatch[1] || 'Generated image'}
+                        width={800}
+                        height={400}
+                        className="rounded-lg w-full"
+                        style={{ height: 'auto' }}
+                        onLoad={() => console.log('图片加载成功:', imageMatch[2])}
+                        onError={(e) => {
+                          console.log('图片加载失败:', imageMatch[2]);
+                          e.currentTarget.style.display = 'none';
+                        }}
+                      />
+                      {imageMatch[1] && (
+                        <p className="text-center text-sm text-gray-600 mt-2">{imageMatch[1]}</p>
+                      )}
+                    </div>
+                  );
+                }
+              }
+              return <span key={index}>{child}</span>;
+            })}
+          </div>
+        );
       }
       return <p className="mb-4 leading-7">{children}</p>;
     },

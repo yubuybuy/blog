@@ -266,9 +266,13 @@ function processImagesInContent(content: string, imagePrompt: string): string {
 
 // 生成图片URL
 function generateImageUrl(prompt: string): string {
-  // 使用Unsplash (更好的图片质量)
-  const keywords = prompt.split(' ').slice(0, 2).join(',');
-  return `https://source.unsplash.com/800x400/?${keywords}`;
+  // 使用Picsum (更稳定的免费服务)
+  const imageId = Math.floor(Math.random() * 1000) + 100; // 100-1099
+  return `https://picsum.photos/800/400?random=${imageId}`;
+
+  // 备用：Unsplash
+  // const keywords = prompt.split(' ').slice(0, 2).join(',');
+  // return `https://source.unsplash.com/800x400/?${keywords}`;
 }
 
 // 发布内容到Sanity
