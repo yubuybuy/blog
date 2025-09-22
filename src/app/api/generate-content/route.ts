@@ -94,6 +94,7 @@ async function generateWithZhipu(resourceInfo: ResourceInfo): Promise<GeneratedC
 // Google Gemini AI生成（优化版）
 async function generateWithGemini(resourceInfo: ResourceInfo): Promise<GeneratedContent | null> {
   const apiKey = process.env.GEMINI_API_KEY;
+  console.log('Gemini API Key存在:', !!apiKey);
   if (!apiKey) return null;
 
   try {
@@ -103,6 +104,7 @@ async function generateWithGemini(resourceInfo: ResourceInfo): Promise<Generated
       .replace('{tags}', resourceInfo.tags.join(', '))
       .replace('{description}', resourceInfo.description || '暂无详细描述');
 
+    console.log('发送Gemini请求...');
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`, {
       method: 'POST',
       headers: {
@@ -123,8 +125,11 @@ async function generateWithGemini(resourceInfo: ResourceInfo): Promise<Generated
       })
     });
 
+    console.log('Gemini响应状态:', response.status);
     if (!response.ok) {
-      throw new Error(`Gemini API error: ${response.status}`);
+      const errorText = await response.text();
+      console.log('Gemini错误详情:', errorText);
+      throw new Error(`Gemini API error: ${response.status} - ${errorText}`);
     }
 
     const data = await response.json();
@@ -151,6 +156,7 @@ async function generateWithGemini(resourceInfo: ResourceInfo): Promise<Generated
 
   } catch (error) {
     console.error('Gemini生成失败:', error);
+    console.error('错误详情:', error instanceof Error ? error.message : '未知错误');
     return null;
   }
 }
@@ -158,6 +164,7 @@ async function generateWithGemini(resourceInfo: ResourceInfo): Promise<Generated
 // Cohere AI生成（优化版）
 async function generateWithCohere(resourceInfo: ResourceInfo): Promise<GeneratedContent | null> {
   const apiKey = process.env.COHERE_API_KEY;
+  console.log('Cohere API Key存在:', !!apiKey);
   if (!apiKey) return null;
 
   try {
@@ -167,6 +174,7 @@ async function generateWithCohere(resourceInfo: ResourceInfo): Promise<Generated
       .replace('{tags}', resourceInfo.tags.join(', '))
       .replace('{description}', resourceInfo.description || '暂无详细描述');
 
+    console.log('发送Cohere请求...');
     const response = await fetch('https://api.cohere.ai/v1/generate', {
       method: 'POST',
       headers: {
@@ -183,8 +191,11 @@ async function generateWithCohere(resourceInfo: ResourceInfo): Promise<Generated
       })
     });
 
+    console.log('Cohere响应状态:', response.status);
     if (!response.ok) {
-      throw new Error(`Cohere API error: ${response.status}`);
+      const errorText = await response.text();
+      console.log('Cohere错误详情:', errorText);
+      throw new Error(`Cohere API error: ${response.status} - ${errorText}`);
     }
 
     const data = await response.json();
