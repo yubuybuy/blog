@@ -63,6 +63,29 @@ const portableTextComponents = {
         {children}
       </a>
     ),
+    imageMarkdown: ({ children }: any) => {
+      // 解析markdown图片语法
+      const text = children[0];
+      const imageMatch = text.match(/!\[(.*?)\]\((.*?)\)/);
+      if (imageMatch) {
+        return (
+          <div className="my-6">
+            <Image
+              src={imageMatch[2]}
+              alt={imageMatch[1] || 'Generated image'}
+              width={800}
+              height={400}
+              className="rounded-lg w-full"
+              style={{ height: 'auto' }}
+            />
+            {imageMatch[1] && (
+              <p className="text-center text-sm text-gray-600 mt-2">{imageMatch[1]}</p>
+            )}
+          </div>
+        );
+      }
+      return <span>{children}</span>;
+    },
   },
   block: {
     h1: ({ children }: any) => (
@@ -82,9 +105,31 @@ const portableTextComponents = {
         {children}
       </blockquote>
     ),
-    normal: ({ children }: any) => (
-      <p className="mb-4 leading-7">{children}</p>
-    ),
+    normal: ({ children }: any) => {
+      // 检查是否包含图片markdown
+      const textContent = children[0];
+      if (typeof textContent === 'string' && textContent.match(/!\[.*?\]\(.*?\)/)) {
+        const imageMatch = textContent.match(/!\[(.*?)\]\((.*?)\)/);
+        if (imageMatch) {
+          return (
+            <div className="my-6">
+              <Image
+                src={imageMatch[2]}
+                alt={imageMatch[1] || 'Generated image'}
+                width={800}
+                height={400}
+                className="rounded-lg w-full"
+                style={{ height: 'auto' }}
+              />
+              {imageMatch[1] && (
+                <p className="text-center text-sm text-gray-600 mt-2">{imageMatch[1]}</p>
+              )}
+            </div>
+          );
+        }
+      }
+      return <p className="mb-4 leading-7">{children}</p>;
+    },
   },
   list: {
     bullet: ({ children }: any) => (

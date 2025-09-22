@@ -257,19 +257,18 @@ function generateWithTemplate(resourceInfo: ResourceInfo): GeneratedContent {
 
 // 处理图片插入
 function processImagesInContent(content: string, imagePrompt: string): string {
-  // 暂时移除图片占位符，避免Sanity引用错误
-  return content.replace(/!\[([^\]]*)\]\(IMAGE_PLACEHOLDER\)/g, '');
+  // 生成相关的图片URL (使用Unsplash)
+  const imageUrl = generateImageUrl(imagePrompt);
+
+  // 替换IMAGE_PLACEHOLDER为实际图片
+  return content.replace(/!\[([^\]]*)\]\(IMAGE_PLACEHOLDER\)/g, `![$1](${imageUrl})`);
 }
 
 // 生成图片URL
 function generateImageUrl(prompt: string): string {
-  // 使用Picsum Photos (免费图片服务)
-  const imageId = Math.floor(Math.random() * 1000) + 1;
-  return `https://picsum.photos/800/400?random=${imageId}`;
-
-  // 或者使用Unsplash (需要API key)
-  // const keywords = prompt.split(' ').slice(0, 3).join(',');
-  // return `https://source.unsplash.com/800x400/?${keywords}`;
+  // 使用Unsplash (更好的图片质量)
+  const keywords = prompt.split(' ').slice(0, 2).join(',');
+  return `https://source.unsplash.com/800x400/?${keywords}`;
 }
 
 // 发布内容到Sanity
@@ -341,15 +340,17 @@ function convertToBlockContent(markdown: string) {
         children: [{ _type: 'span', text: line.substring(4) }]
       });
     } else if (line.match(/!\[.*\]\(.*\)/)) {
-      // 处理图片 - 转换为普通文本描述而不是图片引用
+      // 处理图片 - 存储为带图片URL的文本块
       const imageMatch = line.match(/!\[(.*)\]\((.*)\)/);
       if (imageMatch) {
         blocks.push({
           _type: 'block',
           style: 'normal',
+          markDefs: [],
           children: [{
             _type: 'span',
-            text: `[图片: ${imageMatch[1]}]`
+            text: `![${imageMatch[1]}](${imageMatch[2]})`,
+            marks: [] // 简化处理，在前端直接解析markdown
           }]
         });
       }
