@@ -3,6 +3,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@sanity/client';
+import { CURRENT_CONFIG, PROMPT_TEMPLATES } from '@/lib/generation-config';
 
 const sanityClient = createClient({
   projectId: process.env.NEXT_PUBLIC_SANITY_PROJECT_ID!,
@@ -28,35 +29,79 @@ interface GeneratedContent {
   imagePrompt: string;
 }
 
-// Google Gemini AI生成
+// 智谱GLM AI生成（测试优化参数）
+async function generateWithZhipu(resourceInfo: ResourceInfo): Promise<GeneratedContent | null> {
+  const apiKey = process.env.ZHIPU_API_KEY;
+  if (!apiKey) return null;
+
+  try {
+    // 使用增强模板
+    const prompt = PROMPT_TEMPLATES.enhanced
+      .replace('{category}', resourceInfo.category)
+      .replace('{tags}', resourceInfo.tags.join(', '))
+      .replace('{description}', resourceInfo.description || '暂无详细描述');
+
+    const response = await fetch('https://open.bigmodel.cn/api/paas/v4/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'glm-4',
+        messages: [{
+          role: 'user',
+          content: prompt
+        }],
+        temperature: CURRENT_CONFIG.modelParams.gemini.temperature,
+        max_tokens: CURRENT_CONFIG.modelParams.gemini.maxTokens,
+        top_p: CURRENT_CONFIG.modelParams.gemini.topP
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`智谱API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const text = data.choices[0].message.content;
+
+    // 解析JSON响应
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      try {
+        return JSON.parse(jsonMatch[0]);
+      } catch (parseError) {
+        console.error('JSON解析失败:', parseError);
+      }
+    }
+
+    // 降级处理
+    return {
+      title: `${resourceInfo.category}精选资源分享`,
+      excerpt: `为您整理的高质量${resourceInfo.category}资源，包含${resourceInfo.tags.slice(0, 2).join('、')}等内容。`,
+      content: `# ${resourceInfo.category}资源分享\n\n本次为大家整理了优质${resourceInfo.category}资源，经过精心筛选，确保质量。\n\n## 免责声明\n本站仅提供信息分享，请支持正版内容。`,
+      tags: resourceInfo.tags,
+      imagePrompt: 'abstract digital art, modern design'
+    };
+
+  } catch (error) {
+    console.error('智谱生成失败:', error);
+    return null;
+  }
+}
+
+// Google Gemini AI生成（优化版）
 async function generateWithGemini(resourceInfo: ResourceInfo): Promise<GeneratedContent | null> {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) return null;
 
   try {
-    const prompt = `
-请为以下网盘资源生成博客文章，要求规避版权风险：
-
-资源信息：
-- 分类：${resourceInfo.category}
-- 标签：${resourceInfo.tags.join(', ')}
-- 描述：${resourceInfo.description || ''}
-
-要求：
-1. 标题通用化，避免具体作品名称
-2. 重点强调资源特性和使用价值
-3. 包含免责声明
-4. 内容300-500字
-
-请按JSON格式返回：
-{
-  "title": "文章标题",
-  "excerpt": "文章摘要",
-  "content": "文章正文(markdown格式)",
-  "tags": ["标签1", "标签2"],
-  "imagePrompt": "配图提示词"
-}
-`;
+    // 使用增强模板并替换变量
+    const prompt = PROMPT_TEMPLATES.enhanced
+      .replace('{category}', resourceInfo.category)
+      .replace('{tags}', resourceInfo.tags.join(', '))
+      .replace('{description}', resourceInfo.description || '暂无详细描述');
 
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`, {
       method: 'POST',
@@ -68,7 +113,13 @@ async function generateWithGemini(resourceInfo: ResourceInfo): Promise<Generated
           parts: [{
             text: prompt
           }]
-        }]
+        }],
+        generationConfig: {
+          temperature: CURRENT_CONFIG.modelParams.gemini.temperature,
+          maxOutputTokens: CURRENT_CONFIG.modelParams.gemini.maxTokens,
+          topP: CURRENT_CONFIG.modelParams.gemini.topP,
+          topK: CURRENT_CONFIG.modelParams.gemini.topK
+        }
       })
     });
 
@@ -104,13 +155,17 @@ async function generateWithGemini(resourceInfo: ResourceInfo): Promise<Generated
   }
 }
 
-// Cohere AI生成
+// Cohere AI生成（优化版）
 async function generateWithCohere(resourceInfo: ResourceInfo): Promise<GeneratedContent | null> {
   const apiKey = process.env.COHERE_API_KEY;
   if (!apiKey) return null;
 
   try {
-    const prompt = `为"${resourceInfo.category}"资源写一篇博客文章，避免版权风险，内容包含标题、摘要和正文。`;
+    // 使用基础模板并替换变量
+    const prompt = PROMPT_TEMPLATES.basic
+      .replace('{category}', resourceInfo.category)
+      .replace('{tags}', resourceInfo.tags.join(', '))
+      .replace('{description}', resourceInfo.description || '暂无详细描述');
 
     const response = await fetch('https://api.cohere.ai/v1/generate', {
       method: 'POST',
@@ -119,10 +174,12 @@ async function generateWithCohere(resourceInfo: ResourceInfo): Promise<Generated
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'command',
+        model: CURRENT_CONFIG.modelParams.cohere.model,
         prompt: prompt,
-        max_tokens: 500,
-        temperature: 0.7
+        max_tokens: CURRENT_CONFIG.modelParams.cohere.maxTokens,
+        temperature: CURRENT_CONFIG.modelParams.cohere.temperature,
+        presence_penalty: CURRENT_CONFIG.modelParams.cohere.presencePenalty,
+        frequency_penalty: CURRENT_CONFIG.modelParams.cohere.frequencyPenalty
       })
     });
 
@@ -133,10 +190,21 @@ async function generateWithCohere(resourceInfo: ResourceInfo): Promise<Generated
     const data = await response.json();
     const generatedText = data.generations[0].text;
 
+    // Cohere不直接支持JSON输出，需要解析或构建结构化内容
+    const jsonMatch = generatedText.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      try {
+        return JSON.parse(jsonMatch[0]);
+      } catch (parseError) {
+        console.log('Cohere JSON解析失败，使用结构化处理');
+      }
+    }
+
+    // 如果没有JSON格式，构建结构化内容
     return {
       title: `${resourceInfo.category}资源精选合集`,
-      excerpt: `高质量${resourceInfo.category}资源分享`,
-      content: `# ${resourceInfo.category}资源分享\n\n${generatedText}`,
+      excerpt: `高质量${resourceInfo.category}资源分享，包含${resourceInfo.tags.slice(0, 2).join('、')}等内容。`,
+      content: `# ${resourceInfo.category}资源分享\n\n${generatedText}\n\n## 免责声明\n本站仅提供信息分享，请支持正版内容。`,
       tags: resourceInfo.tags,
       imagePrompt: `${resourceInfo.category.toLowerCase()} themed abstract art`
     };
