@@ -305,8 +305,13 @@ export async function POST(request: NextRequest) {
 
     console.log('开始生成内容:', resource.title);
 
-    // 尝试不同的AI服务
-    let generatedContent = await generateWithGemini(resource);
+    // 优先尝试国内AI服务
+    let generatedContent = await generateWithZhipu(resource);
+
+    if (!generatedContent) {
+      console.log('智谱失败，尝试Gemini...');
+      generatedContent = await generateWithGemini(resource);
+    }
 
     if (!generatedContent) {
       console.log('Gemini失败，尝试Cohere...');
