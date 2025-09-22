@@ -105,7 +105,7 @@ async function generateWithGemini(resourceInfo: ResourceInfo): Promise<Generated
       .replace('{description}', resourceInfo.description || '暂无详细描述');
 
     console.log('发送Gemini请求...');
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`, {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -175,7 +175,7 @@ async function generateWithCohere(resourceInfo: ResourceInfo): Promise<Generated
       .replace('{description}', resourceInfo.description || '暂无详细描述');
 
     console.log('发送Cohere请求...');
-    const response = await fetch('https://api.cohere.ai/v1/generate', {
+    const response = await fetch('https://api.cohere.ai/v1/chat', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${apiKey}`,
@@ -183,7 +183,7 @@ async function generateWithCohere(resourceInfo: ResourceInfo): Promise<Generated
       },
       body: JSON.stringify({
         model: CURRENT_CONFIG.modelParams.cohere.model,
-        prompt: prompt,
+        message: prompt,
         max_tokens: CURRENT_CONFIG.modelParams.cohere.maxTokens,
         temperature: CURRENT_CONFIG.modelParams.cohere.temperature,
         presence_penalty: CURRENT_CONFIG.modelParams.cohere.presencePenalty,
@@ -199,9 +199,9 @@ async function generateWithCohere(resourceInfo: ResourceInfo): Promise<Generated
     }
 
     const data = await response.json();
-    const generatedText = data.generations[0].text;
+    const generatedText = data.text; // Chat API返回格式不同
 
-    // Cohere不直接支持JSON输出，需要解析或构建结构化内容
+    // Cohere Chat API不直接支持JSON输出，需要解析或构建结构化内容
     const jsonMatch = generatedText.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
       try {
