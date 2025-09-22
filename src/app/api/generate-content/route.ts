@@ -305,13 +305,8 @@ export async function POST(request: NextRequest) {
 
     console.log('开始生成内容:', resource.title);
 
-    // 优先尝试国内AI服务
-    let generatedContent = await generateWithZhipu(resource);
-
-    if (!generatedContent) {
-      console.log('智谱失败，尝试Gemini...');
-      generatedContent = await generateWithGemini(resource);
-    }
+    // 只使用国外AI服务 - Gemini优先
+    let generatedContent = await generateWithGemini(resource);
 
     if (!generatedContent) {
       console.log('Gemini失败，尝试Cohere...');
@@ -319,8 +314,11 @@ export async function POST(request: NextRequest) {
     }
 
     if (!generatedContent) {
-      console.log('AI生成失败，使用模板...');
-      generatedContent = generateWithTemplate(resource);
+      console.log('所有AI服务均失败');
+      return NextResponse.json({
+        error: 'AI服务暂时不可用，请检查网络连接或稍后重试',
+        details: 'Gemini和Cohere API均无法访问'
+      }, { status: 503 });
     }
 
     console.log('内容生成成功:', generatedContent.title);
