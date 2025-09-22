@@ -264,7 +264,10 @@ async function publishToSanity(content: GeneratedContent, resourceInfo: Resource
       excerpt: content.excerpt,
       publishedAt: new Date().toISOString(),
       body: convertToBlockContent(content.content),
-      // categories 和其他字段可以根据需要添加
+      // 添加必要的字段让文章能够显示
+      author: null, // 可以设置为null或者创建默认作者
+      categories: [], // 空分类数组
+      mainImage: null // 没有图片
     };
 
     const result = await sanityClient.create(post);

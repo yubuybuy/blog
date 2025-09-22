@@ -37,7 +37,14 @@ export async function getPosts() {
     }
   `
 
-  return await client.fetch(query)
+  try {
+    const posts = await client.fetch(query)
+    // 确保返回数组，即使没有文章
+    return posts || []
+  } catch (error) {
+    console.error('获取文章失败:', error)
+    return []
+  }
 }
 
 export async function getPost(slug: string) {
