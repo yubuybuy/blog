@@ -57,6 +57,7 @@ export async function getPost(slug: string) {
       publishedAt,
       mainImage,
       body,
+      markdownContent,
       author->{
         name,
         image,

@@ -293,11 +293,13 @@ async function publishToSanity(content: GeneratedContent, resourceInfo: Resource
       },
       excerpt: content.excerpt,
       publishedAt: new Date().toISOString(),
-      body: convertToBlockContent(processedContent), // 使用处理后的内容
+      // 直接存储markdown内容而不是转换成blocks
+      markdownContent: processedContent, // 新增字段存储原始markdown
+      body: convertToBlockContent(processedContent), // 保留blocks作为备用
       // 添加必要的字段让文章能够显示
-      author: null, // 可以设置为null或者创建默认作者
-      categories: [], // 空分类数组
-      mainImage: null // 没有图片
+      author: null,
+      categories: [],
+      mainImage: null
     };
 
     const result = await sanityClient.create(post);

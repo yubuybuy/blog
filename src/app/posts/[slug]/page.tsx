@@ -160,6 +160,58 @@ const portableTextComponents = {
   },
 }
 
+// 自定义markdown处理组件
+function MarkdownContent({ content }: { content: string }) {
+  const lines = content.split('\n');
+
+  return (
+    <div className="prose prose-lg max-w-none">
+      {lines.map((line, index) => {
+        // 处理图片
+        if (line.match(/!\[.*?\]\(.*?\)/)) {
+          const imageMatch = line.match(/!\[(.*?)\]\((.*?)\)/);
+          if (imageMatch) {
+            return (
+              <div key={index} className="my-6">
+                <Image
+                  src={imageMatch[2]}
+                  alt={imageMatch[1] || 'Article image'}
+                  width={800}
+                  height={400}
+                  className="rounded-lg w-full"
+                  style={{ height: 'auto' }}
+                />
+                {imageMatch[1] && (
+                  <p className="text-center text-sm text-gray-600 mt-2">{imageMatch[1]}</p>
+                )}
+              </div>
+            );
+          }
+        }
+
+        // 处理标题
+        if (line.startsWith('# ')) {
+          return <h1 key={index} className="text-3xl font-bold mt-8 mb-4">{line.substring(2)}</h1>;
+        }
+        if (line.startsWith('## ')) {
+          return <h2 key={index} className="text-2xl font-bold mt-6 mb-3">{line.substring(3)}</h2>;
+        }
+        if (line.startsWith('### ')) {
+          return <h3 key={index} className="text-xl font-bold mt-5 mb-2">{line.substring(4)}</h3>;
+        }
+
+        // 处理普通段落
+        if (line.trim()) {
+          return <p key={index} className="mb-4 leading-7">{line}</p>;
+        }
+
+        // 空行
+        return <br key={index} />;
+      })}
+    </div>
+  );
+}
+
 export default async function PostPage({ params }: PostPageProps) {
   const { slug } = await params
   const post = await getPost(slug)
@@ -222,10 +274,16 @@ export default async function PostPage({ params }: PostPageProps) {
       </header>
 
       {/* Article Content */}
-      {post.body && (
+      {post.markdownContent ? (
+        // 使用自定义markdown处理
+        <MarkdownContent content={post.markdownContent} />
+      ) : post.body ? (
+        // 降级到原有的PortableText
         <div className="prose prose-lg max-w-none">
           <PortableText value={post.body} components={portableTextComponents} />
         </div>
+      ) : (
+        <p>内容加载中...</p>
       )}
 
       {/* Author Bio */}
