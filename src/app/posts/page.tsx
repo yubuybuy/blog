@@ -7,6 +7,8 @@ export const metadata = {
   description: '浏览所有博客文章',
 }
 
+export const revalidate = 0 // 禁用缓存，确保获取最新文章
+
 export default async function PostsPage() {
   const posts = await getPosts()
 

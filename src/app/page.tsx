@@ -3,6 +3,8 @@ import { getPosts, getCategories, getSiteSettings } from '@/lib/queries'
 import { Post, Category, SiteSettings } from '@/types'
 import Link from 'next/link'
 
+export const revalidate = 0 // 禁用缓存，确保获取最新文章
+
 export default async function Home() {
   const [posts, categories, siteSettings] = await Promise.all([
     getPosts(),

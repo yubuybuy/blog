@@ -298,6 +298,17 @@ async function publishToSanity(content: GeneratedContent, resourceInfo: Resource
     };
 
     const result = await sanityClient.create(post);
+
+    // 发布成功后刷新缓存
+    try {
+      await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'https://www.sswl.top'}/api/revalidate`, {
+        method: 'POST'
+      });
+      console.log('缓存刷新成功');
+    } catch (cacheError) {
+      console.log('缓存刷新失败，但文章已发布:', cacheError);
+    }
+
     return result;
   } catch (error) {
     console.error('发布到Sanity失败:', error);
