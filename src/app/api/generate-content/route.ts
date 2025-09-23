@@ -4,6 +4,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@sanity/client';
 import { CURRENT_CONFIG, PROMPT_TEMPLATES } from '@/lib/generation-config';
+import { generateContentImage } from '@/lib/movie-poster';
 
 const sanityClient = createClient({
   projectId: process.env.NEXT_PUBLIC_SANITY_PROJECT_ID!,
@@ -256,33 +257,25 @@ function generateWithTemplate(resourceInfo: ResourceInfo): GeneratedContent {
 }
 
 // 处理图片插入
-function processImagesInContent(content: string, imagePrompt: string, movieTitle: string): string {
-  // 生成相关的图片URL (优先电影相关)
-  const imageUrl = generateImageUrl(imagePrompt, movieTitle);
+async function processImagesInContent(content: string, resourceInfo: ResourceInfo): Promise<string> {
+  // 生成内容相关的图片URL
+  const imageUrl = await generateContentImage(
+    resourceInfo.title,
+    resourceInfo.category,
+    resourceInfo.tags,
+    '电影海报风格'
+  );
 
   // 替换IMAGE_PLACEHOLDER为实际图片
   return content.replace(/!\[([^\]]*)\]\(IMAGE_PLACEHOLDER\)/g, `![$1](${imageUrl})`);
 }
 
-// 生成图片URL
-function generateImageUrl(prompt: string, movieTitle: string): string {
-  // 优先尝试获取电影相关图片
-  if (movieTitle && movieTitle.length > 0) {
-    // 使用Unsplash搜索电影相关图片
-    const movieKeywords = encodeURIComponent(movieTitle.replace(/[《》]/g, ''));
-    return `https://source.unsplash.com/800x400/?movie,${movieKeywords}`;
-  }
-
-  // 降级到随机图片
-  const imageId = Math.floor(Math.random() * 1000) + 100;
-  return `https://picsum.photos/800/400?random=${imageId}`;
-}
 
 // 发布内容到Sanity
 async function publishToSanity(content: GeneratedContent, resourceInfo: ResourceInfo) {
   try {
     // 处理内容中的图片占位符
-    const processedContent = processImagesInContent(content.content, content.imagePrompt, resourceInfo.title);
+    const processedContent = await processImagesInContent(content.content, resourceInfo);
 
     const post = {
       _type: 'post',
