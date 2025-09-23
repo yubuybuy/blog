@@ -36,8 +36,8 @@ async function generateWithZhipu(resourceInfo: ResourceInfo): Promise<GeneratedC
   if (!apiKey) return null;
 
   try {
-    // 使用真实博客模板并替换变量
-    const prompt = PROMPT_TEMPLATES.realistic
+    // 使用影评作者模板并替换变量
+    const prompt = PROMPT_TEMPLATES.movieReview
       .replace('{title}', resourceInfo.title)
       .replace('{category}', resourceInfo.category)
       .replace('{tags}', resourceInfo.tags.join(', '))
@@ -101,8 +101,8 @@ async function generateWithGemini(resourceInfo: ResourceInfo): Promise<Generated
   if (!apiKey) return null;
 
   try {
-    // 使用真实博客模板并替换变量
-    const prompt = PROMPT_TEMPLATES.realistic
+    // 使用影评作者模板并替换变量
+    const prompt = PROMPT_TEMPLATES.movieReview
       .replace('{title}', resourceInfo.title)
       .replace('{category}', resourceInfo.category)
       .replace('{tags}', resourceInfo.tags.join(', '))
@@ -173,8 +173,8 @@ async function generateWithCohere(resourceInfo: ResourceInfo): Promise<Generated
   if (!apiKey) return null;
 
   try {
-    // 使用真实博客模板并替换变量
-    const prompt = PROMPT_TEMPLATES.realistic
+    // 使用影评作者模板并替换变量
+    const prompt = PROMPT_TEMPLATES.movieReview
       .replace('{title}', resourceInfo.title)
       .replace('{category}', resourceInfo.category)
       .replace('{tags}', resourceInfo.tags.join(', '))
@@ -256,18 +256,25 @@ function generateWithTemplate(resourceInfo: ResourceInfo): GeneratedContent {
 }
 
 // 处理图片插入
-function processImagesInContent(content: string, imagePrompt: string): string {
-  // 生成相关的图片URL (使用Unsplash)
-  const imageUrl = generateImageUrl(imagePrompt);
+function processImagesInContent(content: string, imagePrompt: string, movieTitle: string): string {
+  // 生成相关的图片URL (优先电影相关)
+  const imageUrl = generateImageUrl(imagePrompt, movieTitle);
 
   // 替换IMAGE_PLACEHOLDER为实际图片
   return content.replace(/!\[([^\]]*)\]\(IMAGE_PLACEHOLDER\)/g, `![$1](${imageUrl})`);
 }
 
 // 生成图片URL
-function generateImageUrl(prompt: string): string {
-  // 使用Picsum (更稳定的免费服务)
-  const imageId = Math.floor(Math.random() * 1000) + 100; // 100-1099
+function generateImageUrl(prompt: string, movieTitle: string): string {
+  // 优先尝试获取电影相关图片
+  if (movieTitle && movieTitle.length > 0) {
+    // 使用Unsplash搜索电影相关图片
+    const movieKeywords = encodeURIComponent(movieTitle.replace(/[《》]/g, ''));
+    return `https://source.unsplash.com/800x400/?movie,${movieKeywords}`;
+  }
+
+  // 降级到随机图片
+  const imageId = Math.floor(Math.random() * 1000) + 100;
   return `https://picsum.photos/800/400?random=${imageId}`;
 }
 
@@ -275,7 +282,7 @@ function generateImageUrl(prompt: string): string {
 async function publishToSanity(content: GeneratedContent, resourceInfo: ResourceInfo) {
   try {
     // 处理内容中的图片占位符
-    const processedContent = processImagesInContent(content.content, content.imagePrompt);
+    const processedContent = processImagesInContent(content.content, content.imagePrompt, resourceInfo.title);
 
     const post = {
       _type: 'post',
