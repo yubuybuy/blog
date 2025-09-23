@@ -195,9 +195,11 @@ function MarkdownContent({ content }: { content: string }) {
           return <h3 key={index} className="text-xl font-bold mt-5 mb-2">{line.substring(4)}</h3>;
         }
 
-        // 处理普通段落
+        // 处理普通段落（包含链接）
         if (line.trim()) {
-          return <p key={index} className="mb-4 leading-7">{line}</p>;
+          return <p key={index} className="mb-4 leading-7" dangerouslySetInnerHTML={{
+            __html: line.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="text-blue-600 hover:text-blue-800 underline" target="_blank" rel="noopener noreferrer">$1</a>')
+          }} />;
         }
 
         // 空行
