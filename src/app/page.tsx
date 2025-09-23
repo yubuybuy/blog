@@ -38,13 +38,7 @@ export default async function Home() {
                 href="/posts"
                 className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-4 rounded-full font-semibold text-lg hover:shadow-lg hover:scale-105 transition-all duration-300"
               >
-                🎬 浏览影评
-              </Link>
-              <Link
-                href="/ai-generator"
-                className="bg-white text-gray-800 px-8 py-4 rounded-full font-semibold text-lg border-2 border-gray-200 hover:border-purple-300 hover:shadow-lg hover:scale-105 transition-all duration-300"
-              >
-                🤖 AI创作
+                📖 浏览文章
               </Link>
             </div>
           </div>
@@ -57,65 +51,48 @@ export default async function Home() {
       </section>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
-        {/* Categories - 卡片式设计 */}
-        <section className="mb-16">
-          <div className="text-center mb-10">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">🎭 电影分类</h2>
-            <p className="text-gray-600 text-lg">探索不同类型的精彩电影</p>
-          </div>
+        {/* Categories */}
+        <section className="mb-12">
+          <h2 className="text-2xl font-bold text-gray-900 mb-6">分类</h2>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
             {categories.map((category: Category) => (
               <Link
                 key={category._id}
                 href={`/categories/${category.slug.current}`}
-                className="group bg-white rounded-2xl p-6 shadow-sm hover:shadow-xl border border-gray-100 hover:border-purple-200 transition-all duration-300 text-center"
+                className="bg-white hover:bg-gray-50 text-gray-800 px-4 py-3 rounded-lg transition-colors border border-gray-200 hover:border-purple-300 text-center font-medium"
               >
-                <div className="text-2xl mb-2">🎬</div>
-                <div className="font-semibold text-gray-800 group-hover:text-purple-600 transition-colors">
-                  {category.title}
-                </div>
+                {category.title}
               </Link>
             ))}
           </div>
         </section>
 
-        {/* Latest Posts - 现代化卡片网格 */}
+        {/* Latest Posts */}
         <section>
-          <div className="text-center mb-10">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">🌟 最新影评</h2>
-            <p className="text-gray-600 text-lg mb-6">发现值得观看的精彩电影</p>
+          <div className="flex justify-between items-center mb-8">
+            <h2 className="text-2xl font-bold text-gray-900">最新文章</h2>
             <Link
               href="/posts"
-              className="inline-flex items-center text-purple-600 hover:text-purple-800 font-semibold text-lg group"
+              className="text-blue-600 hover:text-blue-800 font-medium"
             >
-              查看全部
-              <svg className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-              </svg>
+              查看全部 →
             </Link>
           </div>
 
           {posts && posts.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {posts.slice(0, 6).map((post: Post) => (
                 <PostCard key={post._id} post={post} />
               ))}
             </div>
           ) : (
-            <div className="text-center py-16 bg-white rounded-2xl shadow-sm border border-gray-100">
-              <div className="text-6xl mb-4">📽️</div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-2">
-                暂无影评文章
+            <div className="text-center py-12">
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                还没有文章
               </h3>
-              <p className="text-gray-600 mb-6 text-lg">
-                开始创作第一篇精彩影评吧
+              <p className="text-gray-600">
+                请先在Sanity CMS中添加一些文章内容
               </p>
-              <Link
-                href="/ai-generator"
-                className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-3 rounded-full font-semibold hover:shadow-lg hover:scale-105 transition-all duration-300"
-              >
-                🚀 立即创作
-              </Link>
             </div>
           )}
         </section>

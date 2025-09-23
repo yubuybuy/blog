@@ -33,7 +33,7 @@ export default function PostCard({ post }: PostCardProps) {
               href={`/categories/${category.slug.current}`}
               className="text-xs bg-gradient-to-r from-blue-50 to-purple-50 text-purple-700 px-3 py-1.5 rounded-full hover:from-purple-100 hover:to-pink-100 transition-all duration-300 font-medium"
             >
-              🎬 {category.title}
+              {category.title}
             </Link>
           ))}
         </div>
@@ -69,7 +69,7 @@ export default function PostCard({ post }: PostCardProps) {
                 📝
               </div>
             )}
-            <span className="font-medium">{post.author?.name || '影评达人'}</span>
+            <span className="font-medium">{post.author?.name || '博主'}</span>
           </div>
 
           {post.publishedAt && (
@@ -84,7 +84,7 @@ export default function PostCard({ post }: PostCardProps) {
           href={`/posts/${post.slug.current}`}
           className="inline-flex items-center mt-4 text-purple-600 hover:text-purple-800 font-semibold text-sm group"
         >
-          阅读影评
+          阅读文章
           <svg className="ml-1 w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
           </svg>
