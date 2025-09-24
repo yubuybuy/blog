@@ -1,10 +1,13 @@
 import Link from 'next/link'
-import { getCategories } from '@/lib/queries'
+import { getCategories, getSiteName } from '@/lib/queries'
 import { Category } from '@/types'
 
-export const metadata = {
-  title: '分类 - 我的博客',
-  description: '浏览所有文章分类',
+export async function generateMetadata() {
+  const siteName = await getSiteName()
+  return {
+    title: `分类 - ${siteName}`,
+    description: '浏览所有文章分类',
+  }
 }
 
 export default async function CategoriesPage() {

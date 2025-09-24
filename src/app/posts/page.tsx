@@ -1,10 +1,13 @@
 import PostCard from '@/components/PostCard'
-import { getPosts } from '@/lib/queries'
+import { getPosts, getSiteName } from '@/lib/queries'
 import { Post } from '@/types'
 
-export const metadata = {
-  title: '所有文章 - 我的博客',
-  description: '浏览所有博客文章',
+export async function generateMetadata() {
+  const siteName = await getSiteName()
+  return {
+    title: `所有文章 - ${siteName}`,
+    description: '浏览所有博客文章',
+  }
 }
 
 export const revalidate = 0 // 禁用缓存，确保获取最新文章

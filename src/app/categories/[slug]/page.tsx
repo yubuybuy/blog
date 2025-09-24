@@ -1,5 +1,5 @@
 import PostCard from '@/components/PostCard'
-import { getPostsByCategory, getCategories } from '@/lib/queries'
+import { getPostsByCategory, getCategories, getSiteName } from '@/lib/queries'
 import { Post } from '@/types'
 import { notFound } from 'next/navigation'
 
@@ -18,6 +18,7 @@ export async function generateMetadata({ params }: CategoryPageProps) {
   const { slug } = await params
   const categories = await getCategories()
   const category = categories.find((cat: any) => cat.slug.current === slug)
+  const siteName = await getSiteName()
 
   if (!category) {
     return {
@@ -26,7 +27,7 @@ export async function generateMetadata({ params }: CategoryPageProps) {
   }
 
   return {
-    title: `${category.title} - 我的博客`,
+    title: `${category.title} - ${siteName}`,
     description: category.description || `浏览${category.title}分类下的所有文章`,
   }
 }

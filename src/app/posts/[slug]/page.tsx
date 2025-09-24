@@ -2,7 +2,7 @@ import { PortableText } from '@portabletext/react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { urlFor } from '@/lib/sanity'
-import { getPost, getPosts } from '@/lib/queries'
+import { getPost, getPosts, getSiteName } from '@/lib/queries'
 import { format } from 'date-fns'
 import { notFound } from 'next/navigation'
 import MarkdownImage from '@/components/MarkdownImage'
@@ -21,6 +21,7 @@ export async function generateStaticParams() {
 export async function generateMetadata({ params }: PostPageProps) {
   const { slug } = await params
   const post = await getPost(slug)
+  const siteName = await getSiteName()
 
   if (!post) {
     return {
@@ -29,7 +30,7 @@ export async function generateMetadata({ params }: PostPageProps) {
   }
 
   return {
-    title: `${post.title} - 我的博客`,
+    title: `${post.title} - ${siteName}`,
     description: post.excerpt || '查看这篇文章的详细内容',
     openGraph: {
       title: post.title,

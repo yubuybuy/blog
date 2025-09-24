@@ -1,5 +1,6 @@
 import { client } from './sanity'
 
+// 获取网站设置
 export async function getSiteSettings() {
   const query = `
     *[_type == "siteSettings"][0] {
@@ -15,6 +16,12 @@ export async function getSiteSettings() {
   `
 
   return await client.fetch(query)
+}
+
+// 获取网站名称的辅助函数
+export async function getSiteName(): Promise<string> {
+  const settings = await getSiteSettings()
+  return settings?.title || 'USEIT库'
 }
 
 export async function getPosts() {

@@ -1,6 +1,11 @@
-export const metadata = {
-  title: '关于我 - 我的博客',
-  description: '了解更多关于我和这个博客的信息',
+import { getSiteName } from '@/lib/queries'
+
+export async function generateMetadata() {
+  const siteName = await getSiteName()
+  return {
+    title: `关于我 - ${siteName}`,
+    description: '了解更多关于我和这个博客的信息',
+  }
 }
 
 export default function AboutPage() {
