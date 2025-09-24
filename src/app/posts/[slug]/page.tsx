@@ -5,6 +5,7 @@ import { urlFor } from '@/lib/sanity'
 import { getPost, getPosts } from '@/lib/queries'
 import { format } from 'date-fns'
 import { notFound } from 'next/navigation'
+import MarkdownImage from '@/components/MarkdownImage'
 
 interface PostPageProps {
   params: Promise<{ slug: string }>
@@ -168,32 +169,8 @@ function MarkdownContent({ content }: { content: string }) {
             const imageUrl = imageMatch[2];
             const altText = imageMatch[1] || 'Article image';
 
-            // 调试日志
-            console.log('Found image in markdown:', { url: imageUrl, alt: altText });
-
             return (
-              <div key={index} className="my-6">
-                <Image
-                  src={imageUrl}
-                  alt={altText}
-                  width={800}
-                  height={400}
-                  className="rounded-lg w-full"
-                  style={{ height: 'auto' }}
-                  unoptimized // 避免Next.js图片优化问题
-                  onError={(e) => {
-                    console.error('Image failed to load:', imageUrl);
-                    // 隐藏失败的图片
-                    (e.target as HTMLElement).style.display = 'none';
-                  }}
-                  onLoad={() => {
-                    console.log('Image loaded successfully:', imageUrl);
-                  }}
-                />
-                {altText && (
-                  <p className="text-center text-sm text-gray-600 mt-2">{altText}</p>
-                )}
-              </div>
+              <MarkdownImage key={index} src={imageUrl} alt={altText} />
             );
           }
         }
