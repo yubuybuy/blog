@@ -3,6 +3,14 @@
     {
       "source": "/admin/(.*)",
       "destination": "/admin"
+    },
+    {
+      "source": "/structure/(.*)",
+      "destination": "/admin"
+    },
+    {
+      "source": "/desk/(.*)",
+      "destination": "/admin"
     }
   ]
 }

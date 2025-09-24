@@ -23,6 +23,14 @@ const nextConfig: NextConfig = {
         source: '/admin/:path*',
         destination: '/admin',
       },
+      {
+        source: '/structure/:path*',
+        destination: '/admin',
+      },
+      {
+        source: '/desk/:path*',
+        destination: '/admin',
+      },
     ]
   },
 };

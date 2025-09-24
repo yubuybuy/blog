@@ -17,25 +17,5 @@ export default defineConfig({
 
   schema: {
     types: schemaTypes,
-  },
-
-  // 确保删除功能启用
-  document: {
-    actions: (prev, context) => {
-      console.log('🔧 配置文档操作:', prev.map(a => a.action))
-
-      return prev.map((originalAction) => {
-        if (originalAction.action === 'delete') {
-          console.log('🗑️ 启用删除功能')
-          return {
-            ...originalAction,
-            disabled: false,
-            title: '删除',
-            shortcut: 'mod+alt+d'
-          }
-        }
-        return originalAction
-      })
-    }
   }
 })
