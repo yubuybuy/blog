@@ -256,7 +256,7 @@ function generateWithTemplate(resourceInfo: ResourceInfo): GeneratedContent {
   };
 }
 
-// 处理图片插入 - 简化版本
+// 处理图片插入 - 强制插入版本
 async function processImagesInContent(content: string, resourceInfo: ResourceInfo): Promise<string> {
   // 直接使用简单可靠的图片URL
   const imageUrl = `https://via.placeholder.com/800x400/6366f1/ffffff?text=${encodeURIComponent(resourceInfo.category)}`;
@@ -264,8 +264,15 @@ async function processImagesInContent(content: string, resourceInfo: ResourceInf
   console.log('图片处理 - 原内容:', content);
   console.log('图片处理 - 图片URL:', imageUrl);
 
-  // 替换IMAGE_PLACEHOLDER为实际图片
-  const result = content.replace(/!\[([^\]]*)\]\(IMAGE_PLACEHOLDER\)/g, `![$1](${imageUrl})`);
+  // 首先替换已有的IMAGE_PLACEHOLDER
+  let result = content.replace(/!\[([^\]]*)\]\(IMAGE_PLACEHOLDER\)/g, `![$1](${imageUrl})`);
+
+  // 如果没有找到占位符，强制在内容开头插入图片
+  if (!result.includes('![') && !content.includes('IMAGE_PLACEHOLDER')) {
+    console.log('未找到图片占位符，强制插入图片');
+    const imageMarkdown = `![${resourceInfo.category}封面](${imageUrl})\n\n`;
+    result = imageMarkdown + result;
+  }
 
   console.log('图片处理 - 处理后内容:', result);
 
