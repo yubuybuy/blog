@@ -1,5 +1,6 @@
 {
   "name": "netdisk-blog",
+  "author": "AI小白",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -7,11 +8,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint",
-    "auto-publish": "ts-node scripts/auto-publisher.ts",
-    "test-publisher": "ts-node scripts/test-publisher.ts",
-    "simple-test": "ts-node scripts/simple-test.ts",
-    "debug-system": "ts-node scripts/debug-system.ts"
+    "lint": "eslint"
   },
   "dependencies": {
     "@portabletext/react": "^3.0.15",
@@ -19,7 +16,6 @@
     "@sanity/image-url": "^1.0.2",
     "@sanity/vision": "^3.45.0",
     "date-fns": "^3.6.0",
-    "https-proxy-agent": "^7.0.6",
     "next": "15.5.3",
     "next-sanity": "^11.1.1",
     "react": "19.1.0",
@@ -35,7 +31,6 @@
     "eslint": "^9",
     "eslint-config-next": "15.5.3",
     "tailwindcss": "^4",
-    "ts-node": "^10.9.1",
     "typescript": "^5"
   }
 }

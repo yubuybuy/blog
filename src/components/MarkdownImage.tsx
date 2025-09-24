@@ -25,12 +25,12 @@ export default function MarkdownImage({ src, alt }: MarkdownImageProps) {
           }}
           unoptimized
           onError={(e) => {
-            console.error('Image failed to load:', src);
+            console.error('图片加载失败:', src);
             // 隐藏失败的图片
             (e.target as HTMLElement).style.display = 'none';
           }}
           onLoad={() => {
-            console.log('Image loaded successfully:', src);
+            console.log('图片加载成功:', src);
           }}
         />
         {alt && (
