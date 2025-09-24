@@ -256,10 +256,15 @@ function generateWithTemplate(resourceInfo: ResourceInfo): GeneratedContent {
   };
 }
 
-// 处理图片插入 - 使用可靠图片服务
+// 处理图片插入 - 恢复TMDB功能
 async function processImagesInContent(content: string, resourceInfo: ResourceInfo): Promise<string> {
-  // 使用picsum.photos - 更可靠的图片服务
-  const imageUrl = `https://picsum.photos/800/400?random=${Math.floor(Math.random() * 1000)}`;
+  // 恢复智能图片生成
+  const imageUrl = await generateContentImage(
+    resourceInfo.title,
+    resourceInfo.category,
+    resourceInfo.tags,
+    '电影海报风格'
+  );
 
   console.log('图片处理 - 原内容:', content);
   console.log('图片处理 - 图片URL:', imageUrl);
@@ -286,8 +291,13 @@ async function publishToSanity(content: GeneratedContent, resourceInfo: Resource
     // 处理内容中的图片占位符
     const processedContent = await processImagesInContent(content.content, resourceInfo);
 
-    // 生成文章主图用于卡片显示 - 使用可靠图片服务
-    const mainImageUrl = `https://picsum.photos/600/300?random=${Math.floor(Math.random() * 1000)}`;
+    // 生成文章主图用于卡片显示 - 恢复智能图片
+    const mainImageUrl = await generateContentImage(
+      resourceInfo.title,
+      resourceInfo.category,
+      resourceInfo.tags,
+      '文章封面'
+    );
 
     console.log('主图URL:', mainImageUrl);
 

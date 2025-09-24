@@ -69,15 +69,13 @@ export async function getMoviePoster(movieTitle: string): Promise<string | null>
   }
 }
 
-// 备用海报源 - 使用豆瓣风格的占位图
+// 备用海报源 - 使用可靠图片服务
 export function getFallbackPoster(movieTitle: string): string {
-  const colors = ['4f46e5', '7c3aed', 'db2777', 'dc2626', 'ea580c', '059669'];
-  const colorIndex = movieTitle.length % colors.length;
-  const bgColor = colors[colorIndex];
+  // 使用基于标题的稳定随机数，确保同一部电影总是显示相同图片
+  const hash = Math.abs(hashCode(movieTitle)) % 1000;
 
-  // 使用可靠的占位图服务，带有电影标题
-  const encodedTitle = encodeURIComponent(movieTitle.substring(0, 20));
-  return `https://via.placeholder.com/400x600/${bgColor}/ffffff?text=${encodedTitle}`;
+  // 使用picsum.photos作为备用，提供稳定的图片
+  return `https://picsum.photos/400/600?random=${hash}`;
 }
 
 // 检测是否为电影类内容
@@ -123,27 +121,25 @@ export async function generateContentImage(
   return getGenericImage(category, imagePrompt);
 }
 
-// 通用内容图片生成 - 使用更稳定的图片源
+// 通用内容图片生成 - 使用可靠图片源
 function getGenericImage(category: string, imagePrompt: string): string {
-  // 使用稳定的占位图服务，避免网络问题
-  const categoryMap: { [key: string]: { color: string; emoji: string } } = {
-    '软件': { color: '3b82f6', emoji: '💻' },
-    '游戏': { color: '10b981', emoji: '🎮' },
-    '音乐': { color: 'f59e0b', emoji: '🎵' },
-    '学习': { color: '8b5cf6', emoji: '📚' },
-    '资源': { color: '06b6d4', emoji: '📦' },
-    '工具': { color: '6366f1', emoji: '🔧' },
-    '电影': { color: 'ef4444', emoji: '🎬' },
-    '影视': { color: 'ec4899', emoji: '🎭' }
+  // 使用分类主题的稳定图片
+  const categoryMap: { [key: string]: number } = {
+    '软件': 100,
+    '游戏': 200,
+    '音乐': 300,
+    '学习': 400,
+    '资源': 500,
+    '工具': 600,
+    '电影': 700,
+    '影视': 800
   };
 
-  const config = categoryMap[category] || { color: '6b7280', emoji: '📄' };
+  const baseId = categoryMap[category] || 900;
+  const stableId = baseId + Math.abs(hashCode(imagePrompt)) % 50;
 
-  // 生成稳定的ID，确保相同内容获得相同图片
-  const stableId = Math.abs(hashCode(category + imagePrompt)) % 100 + 1;
-
-  // 使用最稳定的占位图服务
-  return `https://via.placeholder.com/800x400/${config.color}/ffffff?text=${encodeURIComponent(config.emoji + ' ' + category)}`;
+  // 使用picsum.photos提供稳定的图片
+  return `https://picsum.photos/800/400?random=${stableId}`;
 }
 
 // 简单的字符串哈希函数
