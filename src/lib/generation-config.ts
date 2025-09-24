@@ -110,6 +110,9 @@ export const PROMPT_TEMPLATES = {
   6. 📁 网盘资源分享（格式：[点击获取资源]({downloadLink}) - 确保链接可点击）
   7. 📝 结语（用一句台词或金句收尾，引导关注）
 
+文章必须包含图片：
+- 在文章开头插入电影海报：![电影海报](IMAGE_PLACEHOLDER)
+
 重要提醒：
 - 网盘资源分享部分，只使用提供的{downloadLink}，不要重复链接
 - 链接格式必须是：[点击获取高清资源]({downloadLink})
@@ -153,7 +156,7 @@ export const PROMPT_TEMPLATES = {
    - 结尾：总结和建议
 
 4. **图片插入**：
-   - 在适当位置添加 ![图片描述](IMAGE_PLACEHOLDER)
+   - 在文章开头必须添加：![主要配图](IMAGE_PLACEHOLDER)
    - 图片描述要具体且相关
 
 5. **网盘链接**：
