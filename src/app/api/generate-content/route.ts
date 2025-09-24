@@ -14,6 +14,49 @@ const sanityClient = createClient({
   token: process.env.SANITY_API_TOKEN?.trim() // 移除换行符和空格
 });
 
+// 简单的速率限制 - 内存存储
+const rateLimitMap = new Map();
+const RATE_LIMIT_WINDOW = 60 * 1000; // 1分钟
+const MAX_REQUESTS = 5; // 每分钟最多5次请求
+
+function checkRateLimit(ip: string): boolean {
+  const now = Date.now();
+  const userRequests = rateLimitMap.get(ip) || [];
+
+  // 清理过期的请求记录
+  const validRequests = userRequests.filter((time: number) => now - time < RATE_LIMIT_WINDOW);
+
+  if (validRequests.length >= MAX_REQUESTS) {
+    return false; // 超出限制
+  }
+
+  validRequests.push(now);
+  rateLimitMap.set(ip, validRequests);
+  return true; // 允许请求
+}
+
+// 验证请求来源和基本安全检查
+function validateRequest(request: NextRequest): { valid: boolean; error?: string } {
+  // 检查User-Agent，基本的bot检测
+  const userAgent = request.headers.get('user-agent');
+  if (!userAgent || userAgent.length < 10) {
+    return { valid: false, error: '无效的请求来源' };
+  }
+
+  // 检查Referer，确保请求来自合法域名
+  const referer = request.headers.get('referer');
+  const allowedDomains = ['www.sswl.top', 'localhost:3000', 'sswl.top'];
+
+  if (referer) {
+    const refererDomain = new URL(referer).hostname;
+    if (!allowedDomains.includes(refererDomain)) {
+      console.warn('⚠️ 可疑请求来源:', refererDomain);
+    }
+  }
+
+  return { valid: true };
+}
+
 interface ResourceInfo {
   title: string;
   category: string;
@@ -444,56 +487,112 @@ function parseInlineMarkdown(text: string) {
 
 // API路由处理器
 export async function POST(request: NextRequest) {
+  const startTime = Date.now();
+
   try {
+    // 获取客户端IP
+    const forwarded = request.headers.get('x-forwarded-for');
+    const clientIp = forwarded?.split(',')[0] || request.ip || 'unknown';
+
+    console.log('🔐 AI生成请求 - IP:', clientIp);
+
+    // 1. 验证请求来源
+    const validation = validateRequest(request);
+    if (!validation.valid) {
+      console.warn('❌ 请求验证失败:', validation.error, '- IP:', clientIp);
+      return NextResponse.json({
+        error: '请求被拒绝',
+        details: validation.error
+      }, { status: 403 });
+    }
+
+    // 2. 速率限制检查
+    if (!checkRateLimit(clientIp)) {
+      console.warn('❌ 速率限制 - IP:', clientIp);
+      return NextResponse.json({
+        error: '请求过于频繁，请稍后再试',
+        details: `每分钟最多允许${MAX_REQUESTS}次请求`
+      }, { status: 429 });
+    }
+
     const { resource, generateOnly = false } = await request.json();
 
     if (!resource) {
       return NextResponse.json({ error: '缺少资源信息' }, { status: 400 });
     }
 
-    console.log('开始生成内容:', resource.title);
+    // 3. 输入验证和清理
+    if (!resource.title?.trim()) {
+      return NextResponse.json({ error: '标题不能为空' }, { status: 400 });
+    }
+
+    if (!resource.downloadLink?.trim()) {
+      console.warn('⚠️ 未提供网盘链接 - IP:', clientIp);
+    }
+
+    // 4. 清理输入数据，防止注入
+    const cleanResource = {
+      title: resource.title.trim().slice(0, 100), // 限制长度
+      category: resource.category?.trim().slice(0, 20) || '其他',
+      tags: Array.isArray(resource.tags) ? resource.tags.slice(0, 10) : [],
+      description: resource.description?.trim().slice(0, 500) || '',
+      downloadLink: resource.downloadLink?.trim().slice(0, 200) || ''
+    };
+
+    console.log('✅ 安全检查通过，开始生成内容:', cleanResource.title);
 
     // 只使用国外AI服务 - Gemini优先
-    let generatedContent = await generateWithGemini(resource);
+    let generatedContent = await generateWithGemini(cleanResource);
 
     if (!generatedContent) {
       console.log('Gemini失败，尝试Cohere...');
-      generatedContent = await generateWithCohere(resource);
+      generatedContent = await generateWithCohere(cleanResource);
     }
 
     if (!generatedContent) {
-      console.log('所有AI服务均失败');
+      console.log('所有AI服务均失败 - IP:', clientIp);
       return NextResponse.json({
         error: 'AI服务暂时不可用，请检查网络连接或稍后重试',
         details: 'Gemini和Cohere API均无法访问'
       }, { status: 503 });
     }
 
-    console.log('内容生成成功:', generatedContent.title);
+    const processingTime = Date.now() - startTime;
+    console.log(`✅ 内容生成成功 - 用时: ${processingTime}ms`);
 
     // 如果只是生成内容，不发布
     if (generateOnly) {
       return NextResponse.json({
         success: true,
         content: generatedContent,
-        method: 'generated'
+        method: 'generated',
+        processingTime: processingTime
       });
     }
 
     // 发布到Sanity
-    const publishedPost = await publishToSanity(generatedContent, resource);
+    const publishedPost = await publishToSanity(generatedContent, cleanResource);
+
+    console.log(`🚀 内容发布成功 - 总用时: ${Date.now() - startTime}ms`);
 
     return NextResponse.json({
       success: true,
       content: generatedContent,
       published: publishedPost,
-      method: 'published'
+      method: 'published',
+      processingTime: Date.now() - startTime
     });
 
   } catch (error) {
-    console.error('API错误:', error);
+    console.error('❌ API错误:', error);
+
+    // 记录可疑活动
+    const forwarded = request.headers.get('x-forwarded-for');
+    const clientIp = forwarded?.split(',')[0] || request.ip || 'unknown';
+    console.error('错误发生 - IP:', clientIp, 'Error:', error);
+
     return NextResponse.json({
-      error: '生成失败',
+      error: '服务器内部错误',
       details: error instanceof Error ? error.message : '未知错误'
     }, { status: 500 });
   }
