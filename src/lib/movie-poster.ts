@@ -73,7 +73,8 @@ export async function getMoviePoster(movieTitle: string): Promise<string | null>
       });
 
       if (movie.poster_path) {
-        const posterUrl = `https://image.tmdb.org/t/p/w500${movie.poster_path}`;
+        // 使用更高清的w780尺寸，更适合显示
+        const posterUrl = `https://image.tmdb.org/t/p/w780${movie.poster_path}`;
         console.log('✅ 成功获取电影海报:', posterUrl);
         return posterUrl;
       } else {
@@ -92,7 +93,8 @@ export async function getMoviePoster(movieTitle: string): Promise<string | null>
         console.log('英文搜索结果数量:', enData.results.length);
 
         if (enData.results.length > 0 && enData.results[0].poster_path) {
-          const posterUrl = `https://image.tmdb.org/t/p/w500${enData.results[0].poster_path}`;
+          // 英文搜索也使用高清w780
+          const posterUrl = `https://image.tmdb.org/t/p/w780${enData.results[0].poster_path}`;
           console.log('✅ 英文搜索成功获取海报:', posterUrl);
           return posterUrl;
         }
