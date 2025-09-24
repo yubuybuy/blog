@@ -72,49 +72,18 @@ export default async function Footer() {
         </div>
 
         <div className="mt-8 border-t border-gray-200 pt-8">
-          <div className="text-center space-y-4">
-            {/* 免责声明 */}
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-left">
-              <h4 className="text-sm font-semibold text-yellow-800 mb-2">⚠️ 重要声明</h4>
-              <p className="text-sm text-yellow-700 mb-2">
-                本站仅提供信息分享交流平台，所有内容均来源于网络公开分享链接，仅供学习参考使用。
-                本站不存储任何文件，不提供下载服务，仅作信息展示。
-              </p>
-              <p className="text-sm text-yellow-700">
-                <strong>支持正版，尊重版权。</strong>如有版权问题，请及时联系我们处理。
-              </p>
-            </div>
-
-            {/* 版权保护声明 */}
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-left">
-              <h4 className="text-sm font-semibold text-blue-800 mb-3">📋 著作权保护声明</h4>
-
-              <div className="text-xs text-blue-700 space-y-2">
-                <p><strong>权利请求条件：</strong></p>
-                <p>任何个人或单位如果同时符合以下条件，可向本站提交权利通知：</p>
-                <ul className="list-disc list-inside ml-4 space-y-1">
-                  <li>是某一作品的著作权人和/或依法可以行使信息网络传播权的权利人；</li>
-                  <li>认为本站收集的公开分享链接信息侵犯了上述作品的权利。</li>
-                </ul>
-
-                <p className="mt-3"><strong>权利通知要求：</strong></p>
-                <p>权利通知必须包含以下资料（发送至：<a href="mailto:dfftrsxcf@gmail.com" className="text-blue-600 underline">dfftrsxcf@gmail.com</a>）：</p>
-                <ul className="list-disc list-inside ml-4 space-y-1">
-                  <li>具体联络信息：姓名、身份证明、通信地址、电话、邮箱等；</li>
-                  <li>完整、准确指明涉嫌侵权作品的名称和具体页面地址；</li>
-                  <li>提供构成侵权的初步证明材料。</li>
-                </ul>
-
-                <p className="mt-3 text-blue-600">
-                  <strong>特别提示：</strong>权利人应对通知书的真实性负责。建议维权者本着实事求是的态度，
-                  确保内容确实属于您的作品，避免因同名、空内容等造成错误指责。
-                </p>
-              </div>
-            </div>
-
-            {/* 版权信息 */}
-            <p className="text-center text-gray-500 pt-4">
+          <div className="text-center space-y-2">
+            <p className="text-sm text-gray-600">
+              <strong>⚠️ 免责声明：</strong>
+              本站仅提供信息分享交流，所有资源均来源于网络，仅供学习参考使用。
+              如有版权问题，请联系删除。支持正版，尊重版权。
+            </p>
+            <p className="text-center text-gray-500 space-x-4">
               © {new Date().getFullYear()} {settings.title}. {settings.copyrightText}
+              <span className="text-gray-300">|</span>
+              <Link href="/copyright" className="text-blue-600 hover:text-blue-800 underline">
+                版权声明
+              </Link>
             </p>
           </div>
         </div>
