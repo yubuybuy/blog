@@ -165,19 +165,33 @@ function MarkdownContent({ content }: { content: string }) {
         if (line.match(/!\[.*?\]\(.*?\)/)) {
           const imageMatch = line.match(/!\[(.*?)\]\((.*?)\)/);
           if (imageMatch) {
+            const imageUrl = imageMatch[2];
+            const altText = imageMatch[1] || 'Article image';
+
+            // 调试日志
+            console.log('Found image in markdown:', { url: imageUrl, alt: altText });
+
             return (
               <div key={index} className="my-6">
                 <Image
-                  src={imageMatch[2]}
-                  alt={imageMatch[1] || 'Article image'}
+                  src={imageUrl}
+                  alt={altText}
                   width={800}
                   height={400}
                   className="rounded-lg w-full"
                   style={{ height: 'auto' }}
                   unoptimized // 避免Next.js图片优化问题
+                  onError={(e) => {
+                    console.error('Image failed to load:', imageUrl);
+                    // 隐藏失败的图片
+                    (e.target as HTMLElement).style.display = 'none';
+                  }}
+                  onLoad={() => {
+                    console.log('Image loaded successfully:', imageUrl);
+                  }}
                 />
-                {imageMatch[1] && (
-                  <p className="text-center text-sm text-gray-600 mt-2">{imageMatch[1]}</p>
+                {altText && (
+                  <p className="text-center text-sm text-gray-600 mt-2">{altText}</p>
                 )}
               </div>
             );

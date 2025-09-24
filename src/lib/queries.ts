@@ -26,6 +26,7 @@ export async function getPosts() {
       excerpt,
       publishedAt,
       mainImage,
+      mainImageUrl,
       author->{
         name,
         image
@@ -56,6 +57,7 @@ export async function getPost(slug: string) {
       excerpt,
       publishedAt,
       mainImage,
+      mainImageUrl,
       body,
       markdownContent,
       author->{
@@ -95,6 +97,7 @@ export async function getPostsByCategory(categorySlug: string) {
       excerpt,
       publishedAt,
       mainImage,
+      mainImageUrl,
       author->{
         name,
         image
@@ -118,6 +121,7 @@ export async function searchPosts(searchQuery: string) {
       excerpt,
       publishedAt,
       mainImage,
+      mainImageUrl,
       author->{
         name,
         image

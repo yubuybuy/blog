@@ -11,8 +11,11 @@ export interface Post {
       _ref: string
     }
     alt?: string
+    customUrl?: string // 新增：自定义图片URL
   }
+  mainImageUrl?: string // 新增：直接图片URL字段
   body?: Record<string, unknown>[]
+  markdownContent?: string // 新增：markdown原始内容
   author?: Author
   categories?: Category[]
 }

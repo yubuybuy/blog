@@ -9,16 +9,53 @@ interface PostCardProps {
 }
 
 export default function PostCard({ post }: PostCardProps) {
+  // 优先使用自定义图片URL，否则使用Sanity图片
+  const getImageUrl = () => {
+    // 检查是否有自定义图片URL
+    if (post.mainImageUrl) {
+      return post.mainImageUrl;
+    }
+
+    // 检查Sanity图像的自定义URL
+    if (post.mainImage?.customUrl) {
+      return post.mainImage.customUrl;
+    }
+
+    // 最后使用Sanity图像
+    if (post.mainImage) {
+      try {
+        return urlFor(post.mainImage).width(600).height(300).url();
+      } catch (error) {
+        console.warn('Sanity image URL生成失败:', error);
+        return null;
+      }
+    }
+
+    return null;
+  };
+
+  const imageUrl = getImageUrl();
+  const hasImage = !!imageUrl;
+
   return (
     <article className="group bg-white rounded-3xl shadow-sm hover:shadow-2xl overflow-hidden border border-gray-100 hover:border-purple-200 transition-all duration-500 hover:-translate-y-2">
-      {post.mainImage && (
+      {hasImage && (
         <Link href={`/posts/${post.slug.current}`}>
           <div className="relative h-48 sm:h-56 w-full overflow-hidden">
             <Image
-              src={urlFor(post.mainImage).width(600).height(300).url()}
-              alt={post.mainImage.alt || post.title}
+              src={imageUrl}
+              alt={post.mainImage?.alt || post.title}
               fill
               className="object-cover group-hover:scale-110 transition-transform duration-700"
+              unoptimized // 避免外部图片优化问题
+              onError={(e) => {
+                console.error('PostCard图片加载失败:', imageUrl);
+                // 隐藏失败的图片容器
+                const container = (e.target as HTMLElement).closest('.relative');
+                if (container) {
+                  container.style.display = 'none';
+                }
+              }}
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
           </div>

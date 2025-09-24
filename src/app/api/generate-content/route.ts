@@ -277,6 +277,26 @@ async function publishToSanity(content: GeneratedContent, resourceInfo: Resource
     // 处理内容中的图片占位符
     const processedContent = await processImagesInContent(content.content, resourceInfo);
 
+    // 生成文章主图用于卡片显示
+    const mainImageUrl = await generateContentImage(
+      resourceInfo.title,
+      resourceInfo.category,
+      resourceInfo.tags,
+      '文章封面'
+    );
+
+    // 创建Sanity图像引用对象（用于兼容Sanity图像系统）
+    const imageReference = {
+      _type: 'image',
+      asset: {
+        _type: 'reference',
+        _ref: 'image-placeholder' // 使用占位符，实际显示时会被URL替换
+      },
+      // 添加自定义字段存储真实图片URL
+      customUrl: mainImageUrl,
+      alt: `${resourceInfo.title}封面图`
+    };
+
     const post = {
       _type: 'post',
       title: content.title,
@@ -295,7 +315,9 @@ async function publishToSanity(content: GeneratedContent, resourceInfo: Resource
       // 添加必要的字段让文章能够显示
       author: null,
       categories: [],
-      mainImage: null
+      mainImage: imageReference, // 使用生成的图片作为主图
+      // 添加图片URL字段用于直接访问
+      mainImageUrl: mainImageUrl
     };
 
     const result = await sanityClient.create(post);
