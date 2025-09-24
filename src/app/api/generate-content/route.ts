@@ -256,18 +256,20 @@ function generateWithTemplate(resourceInfo: ResourceInfo): GeneratedContent {
   };
 }
 
-// 处理图片插入
+// 处理图片插入 - 简化版本
 async function processImagesInContent(content: string, resourceInfo: ResourceInfo): Promise<string> {
-  // 生成内容相关的图片URL
-  const imageUrl = await generateContentImage(
-    resourceInfo.title,
-    resourceInfo.category,
-    resourceInfo.tags,
-    '电影海报风格'
-  );
+  // 直接使用简单可靠的图片URL
+  const imageUrl = `https://via.placeholder.com/800x400/6366f1/ffffff?text=${encodeURIComponent(resourceInfo.category)}`;
+
+  console.log('图片处理 - 原内容:', content);
+  console.log('图片处理 - 图片URL:', imageUrl);
 
   // 替换IMAGE_PLACEHOLDER为实际图片
-  return content.replace(/!\[([^\]]*)\]\(IMAGE_PLACEHOLDER\)/g, `![$1](${imageUrl})`);
+  const result = content.replace(/!\[([^\]]*)\]\(IMAGE_PLACEHOLDER\)/g, `![$1](${imageUrl})`);
+
+  console.log('图片处理 - 处理后内容:', result);
+
+  return result;
 }
 
 
@@ -277,13 +279,10 @@ async function publishToSanity(content: GeneratedContent, resourceInfo: Resource
     // 处理内容中的图片占位符
     const processedContent = await processImagesInContent(content.content, resourceInfo);
 
-    // 生成文章主图用于卡片显示
-    const mainImageUrl = await generateContentImage(
-      resourceInfo.title,
-      resourceInfo.category,
-      resourceInfo.tags,
-      '文章封面'
-    );
+    // 生成文章主图用于卡片显示 - 简化版本
+    const mainImageUrl = `https://via.placeholder.com/600x300/6366f1/ffffff?text=${encodeURIComponent(resourceInfo.category)}`;
+
+    console.log('主图URL:', mainImageUrl);
 
     const post = {
       _type: 'post',
