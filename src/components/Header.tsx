@@ -10,10 +10,14 @@ export default function Header() {
   const [searchQuery, setSearchQuery] = useState('')
   const [siteSettings, setSiteSettings] = useState<SiteSettings | null>(null)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
   const router = useRouter()
 
   useEffect(() => {
-    getSiteSettings().then(setSiteSettings).catch(console.error)
+    getSiteSettings()
+      .then(setSiteSettings)
+      .catch(console.error)
+      .finally(() => setIsLoading(false))
   }, [])
 
   const handleSearch = (e: React.FormEvent) => {
@@ -25,7 +29,8 @@ export default function Header() {
     }
   }
 
-  const siteName = siteSettings?.title || '个人博客'
+  // 避免闪烁：加载时显示空白，加载完成后显示实际标题
+  const siteName = isLoading ? 'USEIT库' : (siteSettings?.title || 'USEIT库')
 
   return (
     <header className="bg-white/95 backdrop-blur-sm shadow-lg border-b border-purple-100 sticky top-0 z-50">
