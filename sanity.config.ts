@@ -18,23 +18,29 @@ export default defineConfig({
     structureTool({
       structure: (S) =>
         S.list()
+          .id('root')
           .title('内容管理中心')
           .items([
             // 管理员模式提示
             ...(isAdminMode ? [
               S.listItem()
+                .id('admin-mode-notice')
                 .title('🔓 管理员模式已启用')
                 .child(
                   S.list()
+                    .id('admin-functions')
                     .title('管理员功能')
                     .items([
                       S.listItem()
+                        .id('delete-enabled')
                         .title('🗑️ 可以删除内容')
                         .child(S.documentTypeList('post').title('删除功能已启用')),
                       S.listItem()
+                        .id('publish-enabled')
                         .title('✅ 可以发布/取消发布')
                         .child(S.documentTypeList('category').title('发布功能已启用')),
                       S.listItem()
+                        .id('duplicate-enabled')
                         .title('📋 可以复制内容')
                         .child(S.documentTypeList('author').title('复制功能已启用')),
                     ])
@@ -43,18 +49,23 @@ export default defineConfig({
             ] : []),
             // 快速操作区域
             S.listItem()
+              .id('quick-actions')
               .title('🚀 快速操作')
               .child(
                 S.list()
+                  .id('quick-create')
                   .title('快速创建')
                   .items([
                     S.listItem()
+                      .id('create-post')
                       .title('📝 新建文章')
                       .child(S.documentTypeList('post').title('新建文章')),
                     S.listItem()
+                      .id('create-category')
                       .title('🗂️ 新建分类')
                       .child(S.documentTypeList('category').title('新建分类')),
                     S.listItem()
+                      .id('create-author')
                       .title('👤 新建作者')
                       .child(S.documentTypeList('author').title('新建作者')),
                   ])
@@ -62,19 +73,28 @@ export default defineConfig({
             S.divider(),
             // 内容管理区域
             S.listItem()
+              .id('posts-management')
               .title('📄 博客文章')
               .child(S.documentTypeList('post').title('文章管理')),
             S.listItem()
+              .id('categories-management')
               .title('🏷️ 分类管理')
               .child(S.documentTypeList('category').title('分类管理')),
             S.listItem()
+              .id('authors-management')
               .title('👥 作者管理')
               .child(S.documentTypeList('author').title('作者管理')),
             S.divider(),
             // 设置区域
             S.listItem()
+              .id('site-settings')
               .title('⚙️ 网站设置')
-              .child(S.document().schemaType('siteSettings').documentId('siteSettings'))
+              .child(
+                S.document()
+                  .schemaType('siteSettings')
+                  .documentId('siteSettings')
+                  .title('网站设置')
+              )
           ])
     }),
     visionTool()
@@ -102,8 +122,7 @@ export default defineConfig({
             ...action,
             disabled: false,
             title: '🗑️ 删除此项',
-            tone: 'critical',
-            icon: () => '🗑️'
+            tone: 'critical'
           }
         }
         // 发布操作
