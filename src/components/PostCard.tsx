@@ -11,58 +11,65 @@ interface PostCardProps {
 }
 
 export default function PostCard({ post }: PostCardProps) {
-  // 优先使用自定义图片URL，否则使用Sanity图片
+  // 强制为每个文章生成图片URL
   const getImageUrl = () => {
+    console.log('PostCard - 检查图片:', {
+      mainImageUrl: post.mainImageUrl,
+      mainImage: post.mainImage,
+      title: post.title
+    });
+
     // 检查是否有自定义图片URL
     if (post.mainImageUrl) {
+      console.log('使用mainImageUrl:', post.mainImageUrl);
       return post.mainImageUrl;
     }
 
     // 检查Sanity图像的自定义URL
     if (post.mainImage?.customUrl) {
+      console.log('使用customUrl:', post.mainImage.customUrl);
       return post.mainImage.customUrl;
     }
 
     // 最后使用Sanity图像
-    if (post.mainImage) {
+    if (post.mainImage && post.mainImage.asset) {
       try {
-        return urlFor(post.mainImage).width(600).height(300).url();
+        const sanityUrl = urlFor(post.mainImage).width(600).height(300).url();
+        console.log('使用Sanity URL:', sanityUrl);
+        return sanityUrl;
       } catch (error) {
         console.warn('Sanity image URL生成失败:', error);
-        return null;
       }
     }
 
-    return null;
+    // 如果都没有，强制生成一个占位图
+    const fallbackUrl = `https://via.placeholder.com/600x300/6366f1/ffffff?text=${encodeURIComponent(post.title.substring(0, 10))}`;
+    console.log('使用fallback URL:', fallbackUrl);
+    return fallbackUrl;
   };
 
   const imageUrl = getImageUrl();
-  const hasImage = !!imageUrl;
 
   return (
     <article className="group bg-white rounded-3xl shadow-sm hover:shadow-2xl overflow-hidden border border-gray-100 hover:border-purple-200 transition-all duration-500 hover:-translate-y-2">
-      {hasImage && (
-        <Link href={`/posts/${post.slug.current}`}>
-          <div className="relative h-48 sm:h-56 w-full overflow-hidden">
-            <Image
-              src={imageUrl}
-              alt={post.mainImage?.alt || post.title}
-              fill
-              className="object-cover group-hover:scale-110 transition-transform duration-700"
-              unoptimized // 避免外部图片优化问题
-              onError={(e) => {
-                console.error('PostCard图片加载失败:', imageUrl);
-                // 隐藏失败的图片容器
-                const container = (e.target as HTMLElement).closest('.relative');
-                if (container) {
-                  container.style.display = 'none';
-                }
-              }}
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-          </div>
-        </Link>
-      )}
+      {/* 强制显示图片区域 */}
+      <Link href={`/posts/${post.slug.current}`}>
+        <div className="relative h-48 sm:h-56 w-full overflow-hidden">
+          <Image
+            src={imageUrl}
+            alt={post.mainImage?.alt || post.title}
+            fill
+            className="object-cover group-hover:scale-110 transition-transform duration-700"
+            unoptimized // 避免外部图片优化问题
+            onError={(e) => {
+              console.error('PostCard图片加载失败:', imageUrl);
+              // 显示错误信息而不是隐藏
+              (e.target as HTMLImageElement).src = `https://via.placeholder.com/600x300/ef4444/ffffff?text=图片加载失败`;
+            }}
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+        </div>
+      </Link>
 
       <div className="p-6 sm:p-8">
         <div className="flex flex-wrap gap-2 mb-4">
