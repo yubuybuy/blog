@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "delete": true,
+    "create": true,
+    "update": true,
+    "publish": true
+  },
+  "adminMode": true,
+  "forceEnable": [
+    "delete",
+    "publish",
+    "unpublish",
+    "duplicate"
+  ]
+}

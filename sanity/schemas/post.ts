@@ -36,6 +36,18 @@ export default defineType({
       },
     }),
     defineField({
+      name: 'mainImageUrl',
+      title: '主图URL',
+      type: 'url',
+      description: '直接使用的图片URL，优先级高于主图'
+    }),
+    defineField({
+      name: 'markdownContent',
+      title: 'Markdown内容',
+      type: 'text',
+      description: '原始markdown格式的文章内容'
+    }),
+    defineField({
       name: 'categories',
       title: '分类',
       type: 'array',

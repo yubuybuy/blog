@@ -186,16 +186,17 @@ export default function AIContentGenerator() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-2">网盘链接</label>
+              <label className="block text-sm font-medium mb-2">网盘链接 <span className="text-red-500">*</span></label>
               <input
                 type="url"
                 value={resource.downloadLink}
                 onChange={(e) => setResource(prev => ({ ...prev, downloadLink: e.target.value }))}
                 placeholder="例如：https://pan.baidu.com/s/xxx 或其他网盘链接"
                 className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                required
               />
               <p className="text-xs text-gray-500 mt-1">
-                支持百度网盘、阿里云盘、夸克网盘等各种网盘链接
+                <span className="text-red-500">必填：</span>支持百度网盘、阿里云盘、夸克网盘等各种网盘链接。如果没有链接，发布的文章将不包含下载链接。
               </p>
             </div>
 

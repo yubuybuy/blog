@@ -43,7 +43,7 @@ async function generateWithZhipu(resourceInfo: ResourceInfo): Promise<GeneratedC
       .replace('{category}', resourceInfo.category)
       .replace('{tags}', resourceInfo.tags.join(', '))
       .replace('{description}', resourceInfo.description || '暂无详细描述')
-      .replace('{downloadLink}', resourceInfo.downloadLink || '暂无下载链接');
+      .replace('{downloadLink}', resourceInfo.downloadLink || '#');
 
     const response = await fetch('https://open.bigmodel.cn/api/paas/v4/chat/completions', {
       method: 'POST',
@@ -108,7 +108,7 @@ async function generateWithGemini(resourceInfo: ResourceInfo): Promise<Generated
       .replace('{category}', resourceInfo.category)
       .replace('{tags}', resourceInfo.tags.join(', '))
       .replace('{description}', resourceInfo.description || '暂无详细描述')
-      .replace('{downloadLink}', resourceInfo.downloadLink || '暂无下载链接');
+      .replace('{downloadLink}', resourceInfo.downloadLink || '#');
 
     console.log('发送Gemini请求...');
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
@@ -180,7 +180,7 @@ async function generateWithCohere(resourceInfo: ResourceInfo): Promise<Generated
       .replace('{category}', resourceInfo.category)
       .replace('{tags}', resourceInfo.tags.join(', '))
       .replace('{description}', resourceInfo.description || '暂无详细描述')
-      .replace('{downloadLink}', resourceInfo.downloadLink || '暂无下载链接');
+      .replace('{downloadLink}', resourceInfo.downloadLink || '#');
 
     console.log('发送Cohere请求...');
     const response = await fetch('https://api.cohere.ai/v1/chat', {
@@ -290,12 +290,36 @@ async function processImagesInContent(content: string, resourceInfo: ResourceInf
   }
 }
 
+// 修复无效网盘链接
+function fixInvalidLinks(content: string, resourceInfo: ResourceInfo): string {
+  // 检查是否有有效的网盘链接
+  const hasValidLink = resourceInfo.downloadLink &&
+    resourceInfo.downloadLink !== '#' &&
+    resourceInfo.downloadLink.trim() !== '' &&
+    (resourceInfo.downloadLink.includes('pan.baidu.com') ||
+     resourceInfo.downloadLink.includes('aliyundrive.com') ||
+     resourceInfo.downloadLink.includes('quark.cn') ||
+     resourceInfo.downloadLink.includes('http'));
+
+  if (!hasValidLink) {
+    // 移除无效的下载链接
+    content = content.replace(/\[([^\]]*获取[^\]]*资源[^\]]*)\]\([^)]*\)/g, '获取链接将在后续更新中提供，请关注本站');
+    content = content.replace(/\[([^\]]*点击获取[^\]]*)\]\([^)]*\)/g, '资源链接待更新，敬请关注');
+    content = content.replace(/\[([^\]]*下载链接[^\]]*)\]\([^)]*\)/g, '下载链接正在整理中');
+  }
+
+  return content;
+}
+
 
 // 发布内容到Sanity
 async function publishToSanity(content: GeneratedContent, resourceInfo: ResourceInfo) {
   try {
     // 处理内容中的图片占位符
-    const processedContent = await processImagesInContent(content.content, resourceInfo);
+    let processedContent = await processImagesInContent(content.content, resourceInfo);
+
+    // 修复无效的网盘链接
+    processedContent = fixInvalidLinks(processedContent, resourceInfo);
 
     // 生成文章主图用于卡片显示 - 仅TMDB版本
     const mainImageUrl = await generateContentImage(
