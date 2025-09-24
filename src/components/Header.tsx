@@ -1,24 +1,18 @@
 'use client'
 
 import Link from 'next/link'
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { getSiteSettings } from '@/lib/queries'
 import { SiteSettings } from '@/types'
 
-export default function Header() {
-  const [searchQuery, setSearchQuery] = useState('')
-  const [siteSettings, setSiteSettings] = useState<SiteSettings | null>(null)
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
-  const [isLoading, setIsLoading] = useState(true)
-  const router = useRouter()
+interface HeaderProps {
+  siteSettings: SiteSettings | null
+}
 
-  useEffect(() => {
-    getSiteSettings()
-      .then(setSiteSettings)
-      .catch(console.error)
-      .finally(() => setIsLoading(false))
-  }, [])
+export default function Header({ siteSettings }: HeaderProps) {
+  const [searchQuery, setSearchQuery] = useState('')
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const router = useRouter()
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
@@ -29,8 +23,8 @@ export default function Header() {
     }
   }
 
-  // 避免闪烁：加载时显示空白，加载完成后显示实际标题
-  const siteName = isLoading ? 'USEIT库' : (siteSettings?.title || 'USEIT库')
+  // 直接使用传入的设置，无需客户端异步加载
+  const siteName = siteSettings?.title || 'USEIT库'
 
   return (
     <header className="bg-white/95 backdrop-blur-sm shadow-lg border-b border-purple-100 sticky top-0 z-50">

@@ -66,18 +66,21 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // 在服务器端获取网站设置
+  const siteSettings = await getSiteSettings();
+
   return (
     <html lang="zh-CN">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen flex flex-col`}
         suppressHydrationWarning={true}
       >
-        <Header />
+        <Header siteSettings={siteSettings} />
         <main className="flex-1">
           {children}
         </main>
