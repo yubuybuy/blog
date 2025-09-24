@@ -26,45 +26,87 @@ function normalizeMovieName(title: string): string {
     .trim();
 }
 
-// 从TMDB获取电影海报
+// 从TMDB获取电影海报 - 增强版调试
 export async function getMoviePoster(movieTitle: string): Promise<string | null> {
   const apiKey = process.env.TMDB_API_KEY;
+
+  console.log('=== TMDB API 调试信息 ===');
+  console.log('API Key存在:', !!apiKey);
+  console.log('API Key前10位:', apiKey ? apiKey.substring(0, 10) + '...' : '未设置');
+  console.log('原始电影标题:', movieTitle);
+
   if (!apiKey) {
-    console.log('TMDB API Key未配置');
+    console.error('❌ TMDB API Key未配置');
     return null;
   }
 
   try {
     const normalizedTitle = normalizeMovieName(movieTitle);
-    console.log(`搜索电影: ${normalizedTitle}`);
+    console.log('标准化后标题:', normalizedTitle);
 
     // 首先尝试中文搜索
-    let searchUrl = `https://api.themoviedb.org/3/search/movie?api_key=${apiKey}&query=${encodeURIComponent(normalizedTitle)}&language=zh-CN`;
+    const searchUrl = `https://api.themoviedb.org/3/search/movie?api_key=${apiKey}&query=${encodeURIComponent(normalizedTitle)}&language=zh-CN`;
+    console.log('TMDB 请求URL:', searchUrl.replace(apiKey, 'API_KEY_HIDDEN'));
 
-    let response = await fetch(searchUrl);
-    let data: TMDBResponse = await response.json();
+    console.log('🔍 发起TMDB API请求...');
+    const response = await fetch(searchUrl);
 
-    // 如果中文搜索无结果，尝试英文搜索
-    if (data.results.length === 0) {
-      console.log('中文搜索无结果，尝试英文搜索');
-      searchUrl = `https://api.themoviedb.org/3/search/movie?api_key=${apiKey}&query=${encodeURIComponent(normalizedTitle)}&language=en-US`;
-      response = await fetch(searchUrl);
-      data = await response.json();
+    console.log('TMDB 响应状态:', response.status);
+    console.log('TMDB 响应头:', Object.fromEntries(response.headers.entries()));
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ TMDB API 请求失败:', response.status, errorText);
+      return null;
     }
+
+    const data: TMDBResponse = await response.json();
+    console.log('TMDB 搜索结果数量:', data.results.length);
 
     if (data.results.length > 0) {
       const movie = data.results[0];
+      console.log('找到的电影:', {
+        title: movie.title,
+        original_title: movie.original_title,
+        release_date: movie.release_date,
+        poster_path: movie.poster_path
+      });
+
       if (movie.poster_path) {
         const posterUrl = `https://image.tmdb.org/t/p/w500${movie.poster_path}`;
-        console.log(`找到电影海报: ${posterUrl}`);
+        console.log('✅ 成功获取电影海报:', posterUrl);
         return posterUrl;
+      } else {
+        console.log('⚠️ 电影存在但没有海报');
+      }
+    } else {
+      console.log('⚠️ 未找到匹配的电影');
+
+      // 如果中文搜索无结果，尝试英文搜索
+      console.log('🔄 尝试英文搜索...');
+      const enSearchUrl = `https://api.themoviedb.org/3/search/movie?api_key=${apiKey}&query=${encodeURIComponent(normalizedTitle)}&language=en-US`;
+      const enResponse = await fetch(enSearchUrl);
+
+      if (enResponse.ok) {
+        const enData: TMDBResponse = await enResponse.json();
+        console.log('英文搜索结果数量:', enData.results.length);
+
+        if (enData.results.length > 0 && enData.results[0].poster_path) {
+          const posterUrl = `https://image.tmdb.org/t/p/w500${enData.results[0].poster_path}`;
+          console.log('✅ 英文搜索成功获取海报:', posterUrl);
+          return posterUrl;
+        }
       }
     }
 
-    console.log('未找到电影海报');
+    console.log('❌ 最终未找到电影海报');
     return null;
   } catch (error) {
-    console.error('TMDB API调用失败:', error);
+    console.error('❌ TMDB API调用异常:', error);
+    if (error instanceof Error) {
+      console.error('错误详情:', error.message);
+      console.error('错误堆栈:', error.stack);
+    }
     return null;
   }
 }
@@ -95,30 +137,35 @@ export function isMovieContent(title: string, category: string, tags: string[]):
   return hasMovieInTitle || hasMovieCategory || hasMovieTags;
 }
 
-// 主要的图片生成函数
+// 主要的图片生成函数 - 仅使用TMDB
 export async function generateContentImage(
   title: string,
   category: string,
   tags: string[] = [],
   imagePrompt: string = ''
-): Promise<string> {
+): Promise<string | null> {
 
-  // 如果是电影内容，优先获取海报
+  console.log('=== 图片生成开始 ===');
+  console.log('标题:', title);
+  console.log('分类:', category);
+  console.log('标签:', tags);
+
+  // 检查是否为电影内容
   if (isMovieContent(title, category, tags)) {
-    console.log('检测到电影内容，获取海报...');
+    console.log('✅ 检测到电影内容，尝试获取TMDB海报...');
 
     const poster = await getMoviePoster(title);
     if (poster) {
+      console.log('🎬 成功获取TMDB海报:', poster);
       return poster;
+    } else {
+      console.log('❌ TMDB海报获取失败');
+      return null;
     }
-
-    // 如果获取海报失败，使用电影风格的备用图
-    console.log('海报获取失败，使用备用图');
-    return getFallbackPoster(title);
+  } else {
+    console.log('ℹ️ 非电影内容，跳过TMDB');
+    return null;
   }
-
-  // 非电影内容使用通用图片
-  return getGenericImage(category, imagePrompt);
 }
 
 // 通用内容图片生成 - 使用可靠图片源

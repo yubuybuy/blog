@@ -256,9 +256,11 @@ function generateWithTemplate(resourceInfo: ResourceInfo): GeneratedContent {
   };
 }
 
-// 处理图片插入 - 恢复TMDB功能
+// 处理图片插入 - 仅TMDB版本
 async function processImagesInContent(content: string, resourceInfo: ResourceInfo): Promise<string> {
-  // 恢复智能图片生成
+  console.log('=== 开始处理文章图片 ===');
+
+  // 尝试获取TMDB图片
   const imageUrl = await generateContentImage(
     resourceInfo.title,
     resourceInfo.category,
@@ -266,22 +268,26 @@ async function processImagesInContent(content: string, resourceInfo: ResourceInf
     '电影海报风格'
   );
 
-  console.log('图片处理 - 原内容:', content);
-  console.log('图片处理 - 图片URL:', imageUrl);
+  console.log('获取到的图片URL:', imageUrl);
 
-  // 首先替换已有的IMAGE_PLACEHOLDER
-  let result = content.replace(/!\[([^\]]*)\]\(IMAGE_PLACEHOLDER\)/g, `![$1](${imageUrl})`);
+  if (imageUrl) {
+    // 有图片则替换占位符
+    let result = content.replace(/!\[([^\]]*)\]\(IMAGE_PLACEHOLDER\)/g, `![$1](${imageUrl})`);
 
-  // 如果没有找到占位符，强制在内容开头插入图片
-  if (!result.includes('![') && !content.includes('IMAGE_PLACEHOLDER')) {
-    console.log('未找到图片占位符，强制插入图片');
-    const imageMarkdown = `![${resourceInfo.category}封面](${imageUrl})\n\n`;
-    result = imageMarkdown + result;
+    // 如果没有找到占位符，强制在内容开头插入图片
+    if (!result.includes('![') && !content.includes('IMAGE_PLACEHOLDER')) {
+      console.log('未找到图片占位符，强制插入TMDB图片');
+      const imageMarkdown = `![电影海报](${imageUrl})\n\n`;
+      result = imageMarkdown + result;
+    }
+
+    console.log('✅ 成功插入TMDB图片');
+    return result;
+  } else {
+    console.log('⚠️ 未获取到TMDB图片，保持原内容');
+    // 没有图片就保持原内容，不插入任何图片
+    return content;
   }
-
-  console.log('图片处理 - 处理后内容:', result);
-
-  return result;
 }
 
 
@@ -291,7 +297,7 @@ async function publishToSanity(content: GeneratedContent, resourceInfo: Resource
     // 处理内容中的图片占位符
     const processedContent = await processImagesInContent(content.content, resourceInfo);
 
-    // 生成文章主图用于卡片显示 - 恢复智能图片
+    // 生成文章主图用于卡片显示 - 仅TMDB版本
     const mainImageUrl = await generateContentImage(
       resourceInfo.title,
       resourceInfo.category,
@@ -299,7 +305,7 @@ async function publishToSanity(content: GeneratedContent, resourceInfo: Resource
       '文章封面'
     );
 
-    console.log('主图URL:', mainImageUrl);
+    console.log('文章卡片图片URL:', mainImageUrl);
 
     const post = {
       _type: 'post',
