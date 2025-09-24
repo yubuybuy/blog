@@ -6,7 +6,8 @@ const nextConfig: NextConfig = {
       'cdn.sanity.io',
       'source.unsplash.com',
       'images.unsplash.com',
-      'picsum.photos'
+      'picsum.photos',
+      'image.tmdb.org'
     ],
   },
   typescript: {
@@ -14,6 +15,15 @@ const nextConfig: NextConfig = {
   },
   eslint: {
     ignoreDuringBuilds: true,
+  },
+  // 修复Admin后台刷新404问题
+  async rewrites() {
+    return [
+      {
+        source: '/admin/:path*',
+        destination: '/admin',
+      },
+    ]
   },
 };
 

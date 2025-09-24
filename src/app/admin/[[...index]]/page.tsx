@@ -6,19 +6,30 @@ import { useEffect } from 'react'
 
 export default function StudioPage() {
   useEffect(() => {
-    // 确保管理员模式在客户端启用
-    if (typeof window !== 'undefined') {
-      window.__SANITY_ADMIN_MODE__ = true
-      console.log('🔓 Sanity Studio 管理员模式已强制启用')
+    console.log('🔧 Sanity Studio 加载中...')
+    console.log('📋 配置信息:', {
+      projectId: config.projectId,
+      dataset: config.dataset,
+      title: config.title
+    })
 
-      // 尝试移除任何删除限制
-      const originalFetch = window.fetch
-      window.fetch = function(...args) {
-        console.log('🌐 Sanity API调用:', args[0])
-        return originalFetch.apply(this, args)
+    // 监听Studio加载完成
+    const checkStudio = () => {
+      const studio = document.querySelector('[data-sanity-root]')
+      if (studio) {
+        console.log('✅ Sanity Studio 已加载')
+        console.log('🗑️ 删除功能应该在文档编辑页面的右上角菜单中')
+      } else {
+        setTimeout(checkStudio, 1000)
       }
     }
+
+    setTimeout(checkStudio, 2000)
   }, [])
 
-  return <NextStudio config={config} />
+  return (
+    <div style={{ height: '100vh' }}>
+      <NextStudio config={config} />
+    </div>
+  )
 }
