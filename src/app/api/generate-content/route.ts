@@ -256,10 +256,10 @@ function generateWithTemplate(resourceInfo: ResourceInfo): GeneratedContent {
   };
 }
 
-// 处理图片插入 - 强制插入版本
+// 处理图片插入 - 使用可靠图片服务
 async function processImagesInContent(content: string, resourceInfo: ResourceInfo): Promise<string> {
-  // 直接使用简单可靠的图片URL
-  const imageUrl = `https://via.placeholder.com/800x400/6366f1/ffffff?text=${encodeURIComponent(resourceInfo.category)}`;
+  // 使用picsum.photos - 更可靠的图片服务
+  const imageUrl = `https://picsum.photos/800/400?random=${Math.floor(Math.random() * 1000)}`;
 
   console.log('图片处理 - 原内容:', content);
   console.log('图片处理 - 图片URL:', imageUrl);
@@ -286,8 +286,8 @@ async function publishToSanity(content: GeneratedContent, resourceInfo: Resource
     // 处理内容中的图片占位符
     const processedContent = await processImagesInContent(content.content, resourceInfo);
 
-    // 生成文章主图用于卡片显示 - 简化版本
-    const mainImageUrl = `https://via.placeholder.com/600x300/6366f1/ffffff?text=${encodeURIComponent(resourceInfo.category)}`;
+    // 生成文章主图用于卡片显示 - 使用可靠图片服务
+    const mainImageUrl = `https://picsum.photos/600/300?random=${Math.floor(Math.random() * 1000)}`;
 
     console.log('主图URL:', mainImageUrl);
 

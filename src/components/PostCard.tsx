@@ -43,7 +43,7 @@ export default function PostCard({ post }: PostCardProps) {
     }
 
     // 如果都没有，强制生成一个占位图
-    const fallbackUrl = `https://via.placeholder.com/600x300/6366f1/ffffff?text=${encodeURIComponent(post.title.substring(0, 10))}`;
+    const fallbackUrl = `https://picsum.photos/600/300?random=${Math.abs(post.title.charCodeAt(0))}`;
     console.log('使用fallback URL:', fallbackUrl);
     return fallbackUrl;
   };
@@ -63,8 +63,8 @@ export default function PostCard({ post }: PostCardProps) {
             unoptimized // 避免外部图片优化问题
             onError={(e) => {
               console.error('PostCard图片加载失败:', imageUrl);
-              // 显示错误信息而不是隐藏
-              (e.target as HTMLImageElement).src = `https://via.placeholder.com/600x300/ef4444/ffffff?text=图片加载失败`;
+              // 显示另一个随机图片而不是错误信息
+              (e.target as HTMLImageElement).src = `https://picsum.photos/600/300?random=${Date.now()}`;
             }}
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
