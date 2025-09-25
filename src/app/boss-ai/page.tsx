@@ -25,19 +25,36 @@ function LoginForm({ onSuccess }: { onSuccess: () => void }) {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    // 管理员账号和密码
-    const correctUsername = 'gao-huan'
-    const correctPassword = 'Hsta3879'
 
-    if (username === correctUsername && password === correctPassword) {
-      onSuccess()
-      setError('')
-    } else {
-      setError('账号或密码错误，请联系管理员')
-      setUsername('')
-      setPassword('')
+    try {
+      const response = await fetch('/api/boss-auth', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          username,
+          password
+        })
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        // 存储token到localStorage
+        localStorage.setItem('boss-token', data.token);
+        onSuccess();
+        setError('');
+      } else {
+        setError(data.error || '账号或密码错误');
+        setUsername('');
+        setPassword('');
+      }
+    } catch (error) {
+      setError('网络错误，请稍后重试');
+      console.error('登录错误:', error);
     }
   }
 
