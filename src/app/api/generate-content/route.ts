@@ -4,6 +4,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@sanity/client';
 import { CURRENT_CONFIG, PROMPT_TEMPLATES } from '@/lib/generation-config';
+import { verifyToken } from "@/app/api/ai-auth/route";
 import { generateContentImage } from '@/lib/movie-poster';
 
 const sanityClient = createClient({
@@ -525,6 +526,26 @@ export async function POST(request: NextRequest) {
     console.log('🔐 AI生成请求 - IP:', clientIp);
 
     // 1. 验证请求来源
+n    // Token验证 - 新增安全检查
+    const authHeader = request.headers.get("authorization");
+    const token = authHeader?.replace("Bearer ", "");
+    
+    if (!token) {
+      console.warn("❌ 缺少认证token - IP:", clientIp);
+      return NextResponse.json({
+        error: "未授权访问，请先登录",
+        code: "MISSING_TOKEN"
+      }, { status: 401 });
+    }
+    
+    const tokenVerification = verifyToken(token);
+    if (!tokenVerification.valid) {
+      console.warn("❌ 无效token - IP:", clientIp);
+      return NextResponse.json({
+        error: "认证已过期，请重新登录",
+        code: "INVALID_TOKEN"
+      }, { status: 401 });
+    }
     const validation = validateRequest(request);
     if (!validation.valid) {
       console.warn('❌ 请求验证失败:', validation.error, '- IP:', clientIp);
@@ -547,6 +568,14 @@ export async function POST(request: NextRequest) {
 
     if (!resource) {
       return NextResponse.json({ error: '缺少资源信息' }, { status: 400 });
+n    // 批量生成安全限制
+    const batchSize = cleanResource.batchSize || 1;
+    if (batchSize > 10) {
+      console.warn("❌ 批量大小超限 - IP:", clientIp, "Size:", batchSize);
+      return NextResponse.json({
+        error: "单次批量处理最多10个资源"
+      }, { status: 400 });
+    }
     }
 
     // 3. 输入验证和清理
