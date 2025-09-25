@@ -26,8 +26,8 @@ function PasswordProtection({ onSuccess }: { onSuccess: () => void }) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    // 管理员密码 - 可以通过环境变量配置
-    const correctPassword = 'admin2024'
+    // 更安全的管理员密码
+    const correctPassword = 'SecureAI#2024!@#'
 
     if (password === correctPassword) {
       onSuccess()
@@ -98,6 +98,13 @@ export default function AIContentGenerator() {
   const [generatedContent, setGeneratedContent] = useState<GeneratedContent | null>(null)
   const [error, setError] = useState<string>('')
   const [publishedPost, setPublishedPost] = useState<any>(null)
+  // 添加使用限制
+  const [usageCount, setUsageCount] = useState(0)
+  const [lastUsageTime, setLastUsageTime] = useState<number | null>(null)
+
+  // 每次会话最多使用3次，每次使用间隔至少30秒
+  const MAX_USAGE_PER_SESSION = 3
+  const MIN_INTERVAL_MS = 30000 // 30秒
 
   // 如果未认证，显示密码输入界面
   if (!isAuthenticated) {
@@ -112,6 +119,20 @@ export default function AIContentGenerator() {
   const generateContent = async (publishImmediately = false) => {
     if (!resource.title) {
       setError('请填写资源标题')
+      return
+    }
+
+    // 检查使用限制
+    const now = Date.now()
+
+    if (usageCount >= MAX_USAGE_PER_SESSION) {
+      setError(`本次会话已达到使用上限（${MAX_USAGE_PER_SESSION}次），请刷新页面重新验证`)
+      return
+    }
+
+    if (lastUsageTime && (now - lastUsageTime) < MIN_INTERVAL_MS) {
+      const remainingSeconds = Math.ceil((MIN_INTERVAL_MS - (now - lastUsageTime)) / 1000)
+      setError(`请等待 ${remainingSeconds} 秒后再次使用，防止滥用`)
       return
     }
 
@@ -140,6 +161,9 @@ export default function AIContentGenerator() {
         if (publishImmediately && data.published) {
           setPublishedPost(data.published)
         }
+        // 更新使用统计
+        setUsageCount(prev => prev + 1)
+        setLastUsageTime(now)
       } else {
         setError(data.error || '生成失败')
       }
@@ -161,6 +185,9 @@ export default function AIContentGenerator() {
             <div className="flex items-center">
               <span className="text-green-600 mr-2">🔐</span>
               <span className="text-green-800 font-medium">已通过安全验证 - 管理员模式</span>
+              <span className="text-gray-500 text-sm ml-4">
+                使用次数: {usageCount}/{MAX_USAGE_PER_SESSION}
+              </span>
             </div>
             <button
               onClick={() => setIsAuthenticated(false)}
@@ -168,6 +195,21 @@ export default function AIContentGenerator() {
             >
               退出登录
             </button>
+          </div>
+        </div>
+
+        {/* 使用限制警告 */}
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+          <div className="flex items-start">
+            <span className="text-yellow-600 mr-2">⚠️</span>
+            <div className="text-yellow-800 text-sm">
+              <strong>防滥用限制：</strong>
+              <ul className="list-disc list-inside mt-1">
+                <li>每次会话最多使用 {MAX_USAGE_PER_SESSION} 次</li>
+                <li>每次使用间隔至少 30 秒</li>
+                <li>请合理使用，避免重复生成相同内容</li>
+              </ul>
+            </div>
           </div>
         </div>
 
