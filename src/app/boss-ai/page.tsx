@@ -19,21 +19,47 @@ interface GeneratedContent {
   imagePrompt: string;
 }
 
-// 简化的密码保护组件
+// 安全的密码保护组件 - 使用API验证
 function PasswordProtection({ onSuccess }: { onSuccess: () => void }) {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    const correctPassword = 'admin2024'
 
-    if (password === correctPassword) {
-      onSuccess()
-      setError('')
-    } else {
-      setError('密码错误，请联系管理员获取访问权限')
-      setPassword('')
+    if (!password.trim()) {
+      setError('请输入密码')
+      return
+    }
+
+    setIsLoading(true)
+    setError('')
+
+    try {
+      const response = await fetch('/api/ai-auth', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ password })
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        // 存储token到localStorage
+        localStorage.setItem('ai-token', data.token);
+        onSuccess();
+      } else {
+        setError(data.error || '认证失败')
+        setPassword('')
+      }
+    } catch (error) {
+      console.error('认证请求失败:', error)
+      setError('网络错误，请稍后重试')
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -53,6 +79,7 @@ function PasswordProtection({ onSuccess }: { onSuccess: () => void }) {
               onChange={(e) => setPassword(e.target.value)}
               placeholder="请输入密码"
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              disabled={isLoading}
               required
             />
           </div>
@@ -63,15 +90,16 @@ function PasswordProtection({ onSuccess }: { onSuccess: () => void }) {
 
           <button
             type="submit"
-            className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition-colors"
+            disabled={isLoading || !password.trim()}
+            className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 disabled:bg-gray-400 transition-colors"
           >
-            访问系统
+            {isLoading ? '🔄 验证中...' : '访问系统'}
           </button>
         </form>
 
         <div className="mt-4 text-center">
           <div className="text-sm text-green-600 bg-green-50 p-2 rounded">
-            🔐 已启用安全保护
+            🛡️ 服务器端安全验证
           </div>
         </div>
       </div>
@@ -147,7 +175,7 @@ function AIContentGenerator({ onLogout }: { onLogout: () => void }) {
             <h1 className="text-2xl font-bold text-gray-800">🤖 AI内容生成器</h1>
             <div className="flex items-center gap-4">
               <div className="text-sm text-green-600 bg-green-50 px-3 py-1 rounded-full">
-                ✅ 已登录
+                ✅ 已认证
               </div>
               <button
                 onClick={onLogout}
@@ -281,6 +309,7 @@ export default function AIGeneratorPage() {
 
   const handleLogout = () => {
     setIsAuthenticated(false)
+    localStorage.removeItem('ai-token')
   }
 
   if (!isAuthenticated) {
