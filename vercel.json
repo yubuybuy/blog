@@ -1,16 +1,16 @@
 {
   "rewrites": [
     {
-      "source": "/admin/(.*)",
-      "destination": "/admin"
+      "source": "/boss-admin/(.*)",
+      "destination": "/boss-admin"
     },
     {
       "source": "/structure/(.*)",
-      "destination": "/admin"
+      "destination": "/boss-admin"
     },
     {
       "source": "/desk/(.*)",
-      "destination": "/admin"
+      "destination": "/boss-admin"
     }
   ]
 }

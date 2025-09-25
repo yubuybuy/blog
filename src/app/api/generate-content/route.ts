@@ -14,6 +14,30 @@ const sanityClient = createClient({
   token: process.env.SANITY_API_TOKEN?.trim() // 移除换行符和空格
 });
 
+// 根据分类名称查找分类ID
+async function findCategoryByName(categoryName: string) {
+  try {
+    const categories = await sanityClient.fetch(`
+      *[_type == "category" && title == $categoryName][0] {
+        _id
+      }
+    `, { categoryName });
+
+    if (categories) {
+      return {
+        _type: 'reference',
+        _ref: categories._id
+      };
+    }
+
+    console.log(`⚠️ 未找到分类: ${categoryName}`);
+    return null;
+  } catch (error) {
+    console.error('查找分类失败:', error);
+    return null;
+  }
+}
+
 // 简单的速率限制 - 内存存储
 const rateLimitMap = new Map();
 const RATE_LIMIT_WINDOW = 60 * 1000; // 1分钟
@@ -364,6 +388,9 @@ async function publishToSanity(content: GeneratedContent, resourceInfo: Resource
     // 修复无效的网盘链接
     processedContent = fixInvalidLinks(processedContent, resourceInfo);
 
+    // 根据分类名称找到对应的分类ID
+    const categoryRef = await findCategoryByName(resourceInfo.category);
+
     // 生成文章主图用于卡片显示 - 仅TMDB版本
     const mainImageUrl = await generateContentImage(
       resourceInfo.title,
@@ -373,6 +400,7 @@ async function publishToSanity(content: GeneratedContent, resourceInfo: Resource
     );
 
     console.log('文章卡片图片URL:', mainImageUrl);
+    console.log('关联的分类:', categoryRef ? `${resourceInfo.category} (ID: ${categoryRef._ref})` : '无分类');
 
     const post = {
       _type: 'post',
@@ -391,7 +419,7 @@ async function publishToSanity(content: GeneratedContent, resourceInfo: Resource
       body: convertToBlockContent(processedContent), // 保留blocks作为备用
       // 添加必要的字段让文章能够显示
       author: null,
-      categories: [],
+      categories: categoryRef ? [categoryRef] : [], // 关联到对应分类
       mainImage: null, // 不使用复杂的Sanity图片引用
       // 直接使用图片URL字段
       mainImageUrl: mainImageUrl
