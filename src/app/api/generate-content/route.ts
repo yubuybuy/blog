@@ -543,7 +543,7 @@ export async function POST(request: NextRequest) {
       }, { status: 429 });
     }
 
-    const { resource, generateOnly = false } = await request.json();
+    const { resource, generateOnly = false, aiProvider = "gemini", template = "movieReview" } = await request.json();
 
     if (!resource) {
       return NextResponse.json({ error: '缺少资源信息' }, { status: 400 });
