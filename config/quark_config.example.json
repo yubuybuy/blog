@@ -1,0 +1,26 @@
+{
+  "browser": {
+    "headless": true,
+    "slow_mo": 1000,
+    "timeout": 30000,
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+  },
+  "quark": {
+    "login_url": "https://pan.quark.cn/",
+    "max_retry_attempts": 3,
+    "transfer_delay_seconds": 2,
+    "batch_size": 5,
+    "cookie_file": "config/quark_cookies.json"
+  },
+  "automation": {
+    "auto_transfer": false,
+    "check_interval_seconds": 300,
+    "max_daily_transfers": 100,
+    "skip_duplicates": true
+  },
+  "notifications": {
+    "success_notification": true,
+    "failure_notification": true,
+    "batch_completion_notification": true
+  }
+}

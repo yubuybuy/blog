@@ -1,228 +1,226 @@
-# 个人博客网站
+# 📱 个人博客 + Telegram网盘自动转存系统
 
-一个基于 Next.js 14 和 Sanity CMS 构建的现代化个人博客网站，支持富文本编辑、文章分类、搜索功能，并针对 SEO 进行了优化。
+一个集成了现代化个人博客和智能网盘管理功能的完整解决方案。基于 Next.js 14 和 Sanity CMS 构建，同时提供强大的 Telegram 群组网盘链接监听和批量转存功能。
 
-## 🚀 功能特性
+## ✨ 核心功能
 
+### 📝 个人博客系统
 - **现代化设计**：简洁美观的响应式设计
 - **富文本编辑**：支持加粗、斜体、下划线、图片插入等格式
 - **内容管理**：基于 Sanity CMS 的强大后台管理系统
 - **文章分类**：支持自定义分类，方便内容组织
 - **搜索功能**：全站搜索，快速找到需要的内容
 - **SEO 优化**：完整的元数据配置、sitemap、robots.txt
-- **移动端适配**：完美支持各种设备尺寸
+- **AI 内容生成**：集成多个 AI 提供商的内容自动生成功能
 
-## 🛠️ 技术栈
+### 🚀 Telegram + 网盘自动转存系统
+- **智能监听**：7x24小时监听Telegram群组中的网盘链接
+- **多平台支持**：夸克、百度、阿里云、天翼云、123云盘
+- **自动转存**：批量转存链接到夸克网盘
+- **Web管理界面**：实时统计、状态监控、批量操作
+- **完善的工具链**：配置验证、系统测试、性能优化
 
-- **前端框架**：Next.js 14 (App Router)
-- **样式方案**：Tailwind CSS
-- **内容管理**：Sanity CMS
-- **部署平台**：Vercel
-- **语言**：TypeScript
+## 🏗️ 系统架构
 
-## 📋 部署前准备
-
-### 1. Sanity 项目设置
-
-1. 访问 [Sanity.io](https://www.sanity.io/) 注册账号
-2. 创建新项目：
-   ```bash
-   npm install -g @sanity/cli
-   sanity init
-   ```
-3. 记录项目 ID 和数据集名称
-
-### 2. 环境变量配置
-
-复制 `.env.local.example` 为 `.env.local` 并填写以下变量：
-
-```env
-# Sanity 配置
-NEXT_PUBLIC_SANITY_PROJECT_ID=你的项目ID
-NEXT_PUBLIC_SANITY_DATASET=production
-SANITY_API_TOKEN=你的API令牌
-
-# 网站配置
-NEXT_PUBLIC_BASE_URL=https://你的域名.com
+```
+┌─────────────────┐    ┌──────────────┐    ┌─────────────────┐
+│   个人博客       │    │  Telegram    │    │   网盘转存       │
+│   (Next.js)     │    │  监听系统     │    │   系统          │
+└─────────────────┘    └──────────────┘    └─────────────────┘
+         │                       │                     │
+         ▼                       ▼                     ▼
+┌─────────────────┐    ┌──────────────┐    ┌─────────────────┐
+│   Sanity CMS    │    │  SQLite      │    │   Quark Pan     │
+│   内容管理       │    │  Database    │    │   API           │
+└─────────────────┘    └──────────────┘    └─────────────────┘
 ```
 
-## 🚀 Vercel 部署步骤
+## 📦 技术栈
 
-### 方法一：GitHub 连接部署（推荐）
+### 前端系统
+- **Next.js 15**：现代React框架
+- **TypeScript**：类型安全的JavaScript
+- **Tailwind CSS**：实用优先的CSS框架
+- **Sanity CMS**：无头内容管理系统
 
-1. **准备代码仓库**
-   ```bash
-   # 初始化 Git 仓库
-   git init
-   git add .
-   git commit -m "Initial commit"
+### 后端服务
+- **Python 3.8+**：核心监听和转存逻辑
+- **python-telegram-bot**：Telegram Bot API集成
+- **Playwright**：浏览器自动化操作
+- **SQLite**：轻量级数据存储
+- **AsyncIO**：高性能异步处理
 
-   # 推送到 GitHub
-   git remote add origin https://github.com/你的用户名/你的仓库名.git
-   git push -u origin main
-   ```
+## 🚀 快速开始
 
-2. **Vercel 部署**
-   - 访问 [Vercel](https://vercel.com) 并登录
-   - 点击 "New Project"
-   - 选择你的 GitHub 仓库
-   - 配置环境变量（在 Settings > Environment Variables）
-   - 点击 "Deploy"
+### 方法一：完整部署（推荐新用户）
 
-### 方法二：Vercel CLI 部署
+```bash
+# 1. 克隆项目
+git clone [repository-url]
+cd netdisk-blog
 
-1. **安装 Vercel CLI**
-   ```bash
-   npm install -g vercel
-   ```
+# 2. 博客系统设置
+npm install
+cp .env.local.example .env.local
+# 编辑 .env.local 填入 Sanity 配置
 
-2. **登录并部署**
-   ```bash
-   vercel login
-   vercel
-   ```
+# 3. Telegram系统设置
+pip install -r requirements.txt
+playwright install firefox
+cp config/telegram_config.example.json config/telegram_config.json
+# 编辑配置文件填入Bot Token和群组ID
 
-## 🌐 域名配置
+# 4. 启动所有服务
+npm run system:all
+```
 
-### 在 Vercel 中配置自定义域名
+### 方法二：分别部署
 
-1. 进入项目的 Vercel 控制台
-2. 前往 "Settings" > "Domains"
-3. 添加你的域名
-4. 按照指引配置 DNS 记录：
-   - **A 记录**：指向 `76.76.19.61`
-   - **CNAME 记录**：指向 `cname.vercel-dns.com`
+#### 仅部署博客系统
+```bash
+npm install
+npm run dev
+# 访问 http://localhost:3000
+```
 
-### 常见 DNS 配置示例
+#### 仅部署Telegram转存系统
+```bash
+pip install -r requirements.txt
+npm run validate:config
+npm run telegram:start
+# 访问 http://localhost:3000/telegram-quark
+```
 
-**Cloudflare：**
-- Type: A, Name: @, Content: 76.76.19.61
-- Type: CNAME, Name: www, Content: cname.vercel-dns.com
+## 📋 项目结构
 
-**阿里云：**
-- 记录类型: A, 主机记录: @, 记录值: 76.76.19.61
-- 记录类型: CNAME, 主机记录: www, 记录值: cname.vercel-dns.com
+```
+netdisk-blog/
+├── 📁 src/app/
+│   ├── telegram-quark/          # Telegram转存Web界面
+│   ├── boss-ai/                 # AI内容生成界面
+│   ├── api/                     # API接口
+│   └── (blog)/                  # 博客系统页面
+├── 📁 scripts/
+│   ├── telegram_listener.py     # Telegram监听器
+│   ├── quark_transfer.py       # 夸克转存器
+│   ├── monitor.py              # 系统监控
+│   ├── test_system.py          # 集成测试
+│   └── optimize_system.py      # 性能优化
+├── 📁 config/
+│   ├── telegram_config.json    # Telegram配置
+│   └── quark_config.json       # 夸克配置
+├── 📁 sanity/                  # Sanity CMS配置
+├── 📁 data/
+│   └── netdisk_links.db        # 链接数据库
+├── 📁 logs/                    # 系统日志
+├── QUICK_START.md              # 快速开始指南
+└── SETUP_GUIDE.md              # 详细部署指南
+```
 
-## 📝 内容管理指南
+## 🔧 主要命令
 
-### 启动 Sanity Studio
+### 博客系统
+```bash
+npm run dev                     # 启动开发服务器
+npm run build                   # 构建生产版本
+npm run start                   # 启动生产服务器
+```
 
-1. **本地开发环境**
-   ```bash
-   cd your-project
-   npm run dev
-   ```
-   访问 `http://localhost:3000/admin` 进入 Sanity Studio
+### Telegram转存系统
+```bash
+npm run system:all              # 一键启动所有服务
+npm run telegram:start          # 启动Telegram监听器
+npm run quark:transfer          # 运行夸克转存
+npm run telegram:monitor        # 系统健康检查
+npm run test:system            # 运行集成测试
+npm run optimize:all           # 系统性能优化
+```
 
-2. **生产环境访问**
-   访问 `https://你的域名.com/admin`
+### 系统管理
+```bash
+npm run validate:config        # 验证配置文件
+npm run maintenance            # 定期维护
+npm run telegram:cleanup       # 清理旧数据
+```
 
-### 创建内容
+## 🌟 特色功能
 
-1. **添加作者**
-   - 进入 "作者" 部分
-   - 填写姓名、上传头像、编写简介
+### 🤖 AI 内容生成系统
+- **多AI提供商**：支持Gemini、Cohere、智谱GLM
+- **批量生成**：支持CSV批量导入和生成
+- **模板系统**：预设多种内容模板
+- **安全认证**：基于Token的访问控制
 
-2. **创建分类**
-   - 进入 "分类" 部分
-   - 添加分类名称和描述
+### 📱 Telegram智能监听
+- **实时监控**：7x24小时群组消息监听
+- **智能提取**：自动识别网盘链接和提取码
+- **去重处理**：避免重复处理相同链接
+- **状态跟踪**：完整的处理状态记录
 
-3. **发布文章**
-   - 进入 "博客文章" 部分
-   - 填写标题、选择作者和分类
-   - 上传主图、编写摘要
-   - 使用富文本编辑器编写正文
-   - 设置发布时间并保存
+### 🚀 批量转存系统
+- **多平台支持**：夸克、百度、阿里云、天翼云、123云盘
+- **智能排队**：合理控制转存频率避免限制
+- **断点续传**：支持失败重试和状态恢复
+- **Web界面管理**：可视化的转存控制和监控
 
-### 富文本编辑功能
+### 📊 完整的监控体系
+- **实时统计**：链接数量、成功率等关键指标
+- **系统监控**：服务状态、资源使用情况
+- **性能优化**：数据库优化、日志清理
+- **健康检查**：定期系统状态检查
 
-- **文本格式**：加粗、斜体、下划线、删除线
-- **标题**：支持 H1-H4 标题
-- **列表**：有序列表和无序列表
-- **引用**：块引用格式
-- **链接**：插入外部链接
-- **图片**：上传和插入图片
-- **代码**：行内代码格式
+## 🛠️ 部署指南
 
-## 🔧 本地开发
+### Vercel 部署（博客系统）
+1. 推送代码到GitHub
+2. 在Vercel中导入项目
+3. 配置环境变量
+4. 部署完成
 
-1. **安装依赖**
-   ```bash
-   npm install
-   ```
+### 本地部署（完整系统）
+详细步骤请参考：
+- [📖 快速开始指南](QUICK_START.md)
+- [🔧 详细部署指南](SETUP_GUIDE.md)
 
-2. **启动开发服务器**
-   ```bash
-   npm run dev
-   ```
+## 🔒 安全特性
 
-3. **访问网站**
-   - 前端：http://localhost:3000
-   - Sanity Studio：http://localhost:3000/admin
+- **Token认证**：API访问基于安全Token验证
+- **访问控制**：Web界面权限控制
+- **配置分离**：敏感信息与代码分离
+- **日志审计**：详细的操作日志记录
 
-## 📱 网站功能
+## 📈 性能优化
 
-### 用户功能
-- **浏览文章**：首页展示最新文章
-- **分类浏览**：按分类查看文章
-- **搜索功能**：全站搜索文章内容
-- **响应式设计**：支持手机、平板、桌面端
+- **数据库索引**：优化查询性能
+- **异步处理**：高并发请求处理
+- **缓存机制**：减少重复计算
+- **资源优化**：定期清理和压缩
 
-### 管理员功能
-- **内容管理**：通过 Sanity Studio 管理所有内容
-- **富文本编辑**：强大的编辑器支持各种格式
-- **媒体管理**：上传和管理图片资源
-- **预览功能**：实时预览文章效果
+## 🤝 社区支持
 
-## 🔍 SEO 优化
+### 📚 文档资源
+- [📖 快速开始](QUICK_START.md) - 5分钟快速部署
+- [🔧 详细部署指南](SETUP_GUIDE.md) - 完整操作步骤
+- [⚙️ 配置说明](config/) - 详细配置文档
 
-网站已包含完整的 SEO 配置：
+### 🆘 获得帮助
+- 🔍 查看日志：`logs/` 目录
+- 🧪 运行测试：`npm run test:system`
+- 🔧 系统检查：`npm run telegram:monitor`
 
-- **元数据**：动态生成页面标题和描述
-- **Open Graph**：社交媒体分享优化
-- **Twitter Cards**：Twitter 分享卡片
-- **Sitemap**：自动生成网站地图
-- **Robots.txt**：搜索引擎爬虫配置
-- **结构化数据**：提升搜索引擎理解
+## 📝 许可证
 
-## 🚨 常见问题
+本项目遵循 MIT 许可证 - 查看 [LICENSE](LICENSE) 文件了解详情。
 
-### 部署问题
+## 🙏 致谢
 
-**Q: 部署后页面显示 500 错误**
-A: 检查环境变量是否正确配置，特别是 Sanity 相关配置
-
-**Q: Sanity Studio 无法访问**
-A: 确保在 Sanity 项目中配置了正确的 CORS 域名
-
-**Q: 图片无法显示**
-A: 检查 Sanity 项目的 API 权限和 CDN 配置
-
-### 内容管理问题
-
-**Q: 富文本编辑器功能受限**
-A: 检查 blockContent schema 配置是否完整
-
-**Q: 搜索功能不工作**
-A: 确保 Sanity 项目有足够的 API 调用配额
-
-## 📞 技术支持
-
-如遇到问题，可以：
-
-1. 查看 [Next.js 文档](https://nextjs.org/docs)
-2. 查看 [Sanity 文档](https://www.sanity.io/docs)
-3. 查看 [Vercel 文档](https://vercel.com/docs)
-
-## 📄 许可证
-
-MIT License - 可自由使用和修改
+- 感谢 [QuarkPanTool](https://github.com/ihmily/QuarkPanTool) 提供的夸克网盘API参考
+- 感谢 Next.js 和 Sanity 团队提供的优秀框架
 
 ---
 
-🎉 恭喜！你的个人博客网站已经准备就绪。开始创作优质内容，与世界分享你的想法吧！
+⭐ 如果这个项目对你有帮助，请给个Star支持一下！
 
-## 🤖 AI 自动发布系统
+🐛 遇到问题？欢迎提交Issue或Pull Request！
 
-本博客支持 AI 自动发布功能，只需更新 `resources.json` 文件即可自动生成并发布文章。
-手动触发测试
+🎉 **现在你拥有了一个完整的个人博客 + 智能网盘管理系统！**

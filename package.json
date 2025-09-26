@@ -8,7 +8,20 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "telegram:start": "python3 scripts/telegram_listener.py",
+    "telegram:monitor": "python3 scripts/monitor.py check",
+    "telegram:cleanup": "python3 scripts/monitor.py cleanup",
+    "quark:transfer": "python3 scripts/quark_transfer.py",
+    "system:all": "bash start_telegram_quark.sh",
+    "test:system": "python3 scripts/test_system.py",
+    "optimize:all": "python3 scripts/optimize_system.py all",
+    "optimize:database": "python3 scripts/optimize_system.py database",
+    "validate:config": "python3 scripts/validate_config.py",
+    "maintenance": "bash scripts/maintenance.sh",
+    "crawler:start": "python3 scripts/quick_start.py",
+    "crawler:run": "python3 scripts/comprehensive_crawler.py",
+    "crawler:transfer": "python3 scripts/batch_transfer.py"
   },
   "dependencies": {
     "@portabletext/react": "^3.0.15",

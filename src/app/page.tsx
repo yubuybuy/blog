@@ -81,8 +81,8 @@ export default async function Home() {
 
           {posts && posts.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {posts.slice(0, 6).map((post: Post) => (
-                <PostCard key={post._id} post={post} />
+              {posts.slice(0, 6).map((post: Post, index: number) => (
+                <PostCard key={`${post._id}-${index}`} post={post} />
               ))}
             </div>
           ) : (

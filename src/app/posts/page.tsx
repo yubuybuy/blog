@@ -28,8 +28,8 @@ export default async function PostsPage() {
 
       {posts && posts.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {posts.map((post: Post) => (
-            <PostCard key={post._id} post={post} />
+          {posts.map((post: Post, index: number) => (
+            <PostCard key={`${post._id}-${index}`} post={post} />
           ))}
         </div>
       ) : (

@@ -73,9 +73,9 @@ export default function PostCard({ post }: PostCardProps) {
 
       <div className="p-6 sm:p-8">
         <div className="flex flex-wrap gap-2 mb-4">
-          {post.categories?.map((category) => (
+          {post.categories?.map((category, index) => (
             <Link
-              key={category._id}
+              key={`${category._id}-${index}`}
               href={`/categories/${category.slug.current}`}
               className="text-xs bg-gradient-to-r from-blue-50 to-purple-50 text-purple-700 px-3 py-1.5 rounded-full hover:from-purple-100 hover:to-pink-100 transition-all duration-300 font-medium"
             >

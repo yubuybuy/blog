@@ -599,7 +599,7 @@ export async function POST(request: NextRequest) {
 
     console.log('✅ 安全检查通过，开始生成内容:', cleanResource.title);
 
-    // 只使用国外AI服务 - Gemini优先
+    // 只使用海外AI服务 - Gemini优先
     let generatedContent = await generateWithGemini(cleanResource);
 
     if (!generatedContent) {

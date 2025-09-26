@@ -1,0 +1,19 @@
+{
+  "bot_token": "你的Telegram Bot Token",
+  "chat_ids": [
+    -1001234567890,
+    -1001234567891
+  ],
+  "settings": {
+    "auto_save": true,
+    "send_confirmation": false,
+    "max_links_per_message": 10,
+    "excluded_keywords": ["广告", "推广"],
+    "included_platforms": ["quark", "baidu", "aliyun", "tianyi", "123pan"]
+  },
+  "database": {
+    "path": "data/netdisk_links.db",
+    "backup_enabled": true,
+    "backup_interval_hours": 24
+  }
+}
