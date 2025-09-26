@@ -1,4 +1,4 @@
-name: AI Auto Publisher
+name: AI Auto Publisher (DISABLED)
 
 on:
   # 当resources.json文件更新时触发
@@ -8,9 +8,9 @@ on:
     branches:
       - master
 
-  # 定时触发 (每天运行3次)
-  schedule:
-    - cron: '0 9,15,21 * * *'  # 每天9点、15点、21点
+  # 定时触发已禁用
+  # schedule:
+  #   - cron: '0 9,15,21 * * *'  # 每天9点、15点、21点
 
   # 手动触发
   workflow_dispatch:
