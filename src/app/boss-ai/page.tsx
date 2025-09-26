@@ -153,10 +153,17 @@ function AIContentGenerator({ onLogout }: { onLogout: () => void }) {
     setResult(null)
 
     try {
+      // 获取存储的token
+      const token = localStorage.getItem('ai-token');
+      if (!token) {
+        throw new Error('认证token不存在，请重新登录');
+      }
+
       const response = await fetch('/api/generate-content', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
           resource,
@@ -245,10 +252,17 @@ function AIContentGenerator({ onLogout }: { onLogout: () => void }) {
       ))
 
       try {
+        // 获取存储的token
+        const token = localStorage.getItem('ai-token');
+        if (!token) {
+          throw new Error('认证token不存在，请重新登录');
+        }
+
         const response = await fetch('/api/generate-content', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
           },
           body: JSON.stringify({
             resource: {
