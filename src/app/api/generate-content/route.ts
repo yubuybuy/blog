@@ -526,7 +526,7 @@ export async function POST(request: NextRequest) {
     console.log('🔐 AI生成请求 - IP:', clientIp);
 
     // 1. 验证请求来源
-n    // Token验证 - 新增安全检查
+    // Token验证 - 新增安全检查
     const authHeader = request.headers.get("authorization");
     const token = authHeader?.replace("Bearer ", "");
     
@@ -568,14 +568,6 @@ n    // Token验证 - 新增安全检查
 
     if (!resource) {
       return NextResponse.json({ error: '缺少资源信息' }, { status: 400 });
-n    // 批量生成安全限制
-    const batchSize = cleanResource.batchSize || 1;
-    if (batchSize > 10) {
-      console.warn("❌ 批量大小超限 - IP:", clientIp, "Size:", batchSize);
-      return NextResponse.json({
-        error: "单次批量处理最多10个资源"
-      }, { status: 400 });
-    }
     }
 
     // 3. 输入验证和清理
@@ -595,6 +587,15 @@ n    // 批量生成安全限制
       description: resource.description?.trim().slice(0, 500) || '',
       downloadLink: resource.downloadLink?.trim().slice(0, 200) || ''
     };
+
+    // 批量生成安全限制
+    const batchSize = cleanResource.batchSize || 1;
+    if (batchSize > 10) {
+      console.warn("❌ 批量大小超限 - IP:", clientIp, "Size:", batchSize);
+      return NextResponse.json({
+        error: "单次批量处理最多10个资源"
+      }, { status: 400 });
+    }
 
     console.log('✅ 安全检查通过，开始生成内容:', cleanResource.title);
 
