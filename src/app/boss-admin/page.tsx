@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import Head from 'next/head'
 import RecycleBinTab from '@/components/admin/RecycleBinTab'
 import AIGeneratorTab from '@/components/admin/AIGeneratorTab'
 import SanityStudioTab from '@/components/admin/SanityStudioTab'
@@ -159,6 +160,11 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
 // 主组件
 export default function AdminPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
+
+  // 设置页面标题
+  useEffect(() => {
+    document.title = '👑 BOSS管理后台 - 网站管理中心'
+  }, [])
 
   const handleLogin = () => {
     setIsAuthenticated(true)

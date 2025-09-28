@@ -109,6 +109,139 @@ export default function AIGeneratorTab() {
     }
   }
 
+  // 批量导入CSV
+  const handleBatchImport = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      try {
+        const text = e.target?.result as string
+        const lines = text.split('\n').filter(line => line.trim())
+
+        const resources: BatchResourceInfo[] = lines.slice(1).map((line, index) => {
+          const values = line.split(',').map(v => v.trim())
+          return {
+            id: `batch-${Date.now()}-${index}`,
+            title: values[0] || '',
+            category: values[1] || '',
+            description: values[2] || '',
+            downloadLink: values[3] || '',
+            files: [],
+            tags: values[4] ? values[4].split('|') : [],
+            status: 'pending'
+          }
+        }).filter(r => r.title)
+
+        setBatchResources(resources)
+        alert(`成功导入 ${resources.length} 个资源`)
+      } catch (error) {
+        alert('CSV文件格式错误，请检查格式')
+      }
+    }
+    reader.readAsText(file)
+  }
+
+  // 批量生成
+  const handleBatchGenerate = async () => {
+    if (batchResources.length === 0) {
+      alert('请先导入资源列表')
+      return
+    }
+
+    setIsGenerating(true)
+
+    for (let i = 0; i < batchResources.length; i++) {
+      const resource = batchResources[i]
+      if (resource.status !== 'pending') continue
+
+      setBatchResources(prev => prev.map(r =>
+        r.id === resource.id ? { ...r, status: 'generating' } : r
+      ))
+
+      try {
+        const response = await fetch('/api/generate-content', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            resource: {
+              title: resource.title,
+              category: resource.category,
+              description: resource.description,
+              downloadLink: resource.downloadLink,
+              files: resource.files,
+              tags: resource.tags
+            },
+            generateOnly,
+            template: contentTemplate
+          })
+        })
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`)
+        }
+
+        const data = await response.json()
+
+        if (data.success) {
+          setBatchResources(prev => prev.map(r =>
+            r.id === resource.id ? {
+              ...r,
+              status: 'completed',
+              result: data.content
+            } : r
+          ))
+        } else {
+          throw new Error(data.error || '生成失败')
+        }
+
+        if (autoPublishDelay > 0 && i < batchResources.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, autoPublishDelay * 1000))
+        }
+
+      } catch (error) {
+        console.error(`批量生成错误 [${resource.title}]:`, error)
+        setBatchResources(prev => prev.map(r =>
+          r.id === resource.id ? {
+            ...r,
+            status: 'error',
+            error: error instanceof Error ? error.message : '未知错误'
+          } : r
+        ))
+      }
+    }
+
+    setIsGenerating(false)
+    alert('批量生成完成！')
+  }
+
+  const addBatchResource = () => {
+    const newResource: BatchResourceInfo = {
+      id: `manual-${Date.now()}`,
+      title: '',
+      category: '',
+      description: '',
+      downloadLink: '',
+      files: [],
+      tags: [],
+      status: 'pending'
+    }
+    setBatchResources(prev => [...prev, newResource])
+  }
+
+  const removeBatchResource = (id: string) => {
+    setBatchResources(prev => prev.filter(r => r.id !== id))
+  }
+
+  const updateBatchResource = (id: string, field: string, value: any) => {
+    setBatchResources(prev => prev.map(r =>
+      r.id === id ? { ...r, [field]: value } : r
+    ))
+  }
+
   const handleTagsChange = (value: string) => {
     const tags = value.split(',').map(tag => tag.trim()).filter(tag => tag)
     setResource({ ...resource, tags })
@@ -345,10 +478,160 @@ export default function AIGeneratorTab() {
       ) : (
         /* 批量生成模式 */
         <div className="bg-white rounded-lg shadow-sm p-6">
-          <div className="text-center text-gray-500 py-12">
-            <div className="text-4xl mb-4">🚧</div>
-            <h3 className="text-lg font-semibold text-gray-700 mb-2">批量生成功能</h3>
-            <p className="text-gray-500">批量生成功能正在开发中...</p>
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-lg font-semibold">📦 批量生成</h3>
+            <div className="flex gap-2">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".csv"
+                onChange={handleBatchImport}
+                className="hidden"
+              />
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="px-4 py-2 bg-green-600 text-white text-sm rounded hover:bg-green-700"
+              >
+                📄 导入CSV
+              </button>
+              <button
+                onClick={addBatchResource}
+                className="px-4 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
+              >
+                ➕ 添加资源
+              </button>
+              <button
+                onClick={handleBatchGenerate}
+                disabled={isGenerating || batchResources.length === 0}
+                className="px-6 py-2 bg-purple-600 text-white text-sm rounded hover:bg-purple-700 disabled:bg-gray-400"
+              >
+                {isGenerating ? '🔄 批量生成中...' : '🚀 开始批量生成'}
+              </button>
+            </div>
+          </div>
+
+          {batchResources.length > 0 ? (
+            <div className="space-y-4">
+              {batchResources.map((resource, index) => (
+                <div key={resource.id} className="border border-gray-200 rounded-lg p-4">
+                  <div className="flex justify-between items-start mb-3">
+                    <span className="text-sm font-medium text-gray-700">
+                      #{index + 1}
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className={`px-2 py-1 text-xs rounded-full ${
+                        resource.status === 'pending' ? 'bg-gray-100 text-gray-600' :
+                        resource.status === 'generating' ? 'bg-blue-100 text-blue-600' :
+                        resource.status === 'completed' ? 'bg-green-100 text-green-600' :
+                        'bg-red-100 text-red-600'
+                      }`}>
+                        {
+                          resource.status === 'pending' ? '⏳ 等待' :
+                          resource.status === 'generating' ? '🔄 生成中' :
+                          resource.status === 'completed' ? '✅ 完成' :
+                          '❌ 错误'
+                        }
+                      </span>
+                      <button
+                        onClick={() => removeBatchResource(resource.id)}
+                        className="text-red-500 hover:text-red-700 text-sm"
+                      >
+                        🗑️
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+                    <input
+                      type="text"
+                      placeholder="标题"
+                      value={resource.title}
+                      onChange={(e) => updateBatchResource(resource.id, 'title', e.target.value)}
+                      className="px-2 py-1 text-sm border border-gray-300 rounded"
+                    />
+                    <input
+                      type="text"
+                      placeholder="分类"
+                      value={resource.category}
+                      onChange={(e) => updateBatchResource(resource.id, 'category', e.target.value)}
+                      className="px-2 py-1 text-sm border border-gray-300 rounded"
+                    />
+                    <input
+                      type="text"
+                      placeholder="描述"
+                      value={resource.description}
+                      onChange={(e) => updateBatchResource(resource.id, 'description', e.target.value)}
+                      className="px-2 py-1 text-sm border border-gray-300 rounded"
+                    />
+                    <input
+                      type="text"
+                      placeholder="网盘链接"
+                      value={resource.downloadLink}
+                      onChange={(e) => updateBatchResource(resource.id, 'downloadLink', e.target.value)}
+                      className="px-2 py-1 text-sm border border-gray-300 rounded"
+                    />
+                    <input
+                      type="text"
+                      placeholder="标签(逗号分隔)"
+                      value={resource.tags.join(', ')}
+                      onChange={(e) => updateBatchResource(resource.id, 'tags', e.target.value.split(',').map(t => t.trim()).filter(t => t))}
+                      className="px-2 py-1 text-sm border border-gray-300 rounded"
+                    />
+                  </div>
+
+                  {resource.status === 'error' && resource.error && (
+                    <div className="mt-2 text-xs text-red-600 bg-red-50 p-2 rounded">
+                      错误: {resource.error}
+                    </div>
+                  )}
+
+                  {resource.result && (
+                    <div className="mt-2 text-xs bg-green-50 p-2 rounded">
+                      <strong>生成完成:</strong> {resource.result.title}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center text-gray-500 py-12">
+              <div className="text-4xl mb-4">📦</div>
+              <p>导入CSV文件或手动添加资源开始批量生成</p>
+              <p className="text-sm mt-2">CSV格式: 标题,分类,描述,网盘链接,标签(用|分隔)</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* 状态统计 */}
+      {batchMode && batchResources.length > 0 && (
+        <div className="mt-6 bg-white rounded-lg shadow-sm p-6">
+          <h4 className="text-lg font-semibold mb-3">📊 生成统计</h4>
+          <div className="grid grid-cols-4 gap-4">
+            <div className="text-center">
+              <div className="text-2xl font-bold text-gray-600">
+                {batchResources.filter(r => r.status === 'pending').length}
+              </div>
+              <div className="text-sm text-gray-500">等待生成</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-blue-600">
+                {batchResources.filter(r => r.status === 'generating').length}
+              </div>
+              <div className="text-sm text-gray-500">生成中</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-green-600">
+                {batchResources.filter(r => r.status === 'completed').length}
+              </div>
+              <div className="text-sm text-gray-500">已完成</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-red-600">
+                {batchResources.filter(r => r.status === 'error').length}
+              </div>
+              <div className="text-sm text-gray-500">生成失败</div>
+            </div>
           </div>
         </div>
       )}
