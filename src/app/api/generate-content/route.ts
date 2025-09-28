@@ -246,13 +246,29 @@ async function generateWithCohere(resourceInfo: ResourceInfo): Promise<Generated
 
     if (codeBlockMatch) {
       try {
-        const parsed = JSON.parse(codeBlockMatch[1]);
+        // 清理JSON字符串中的控制字符
+        let cleanJsonStr = codeBlockMatch[1]
+          .replace(/\r\n/g, '\\n')  // 替换Windows换行符
+          .replace(/\n/g, '\\n')    // 替换Unix换行符
+          .replace(/\r/g, '\\r')    // 替换回车符
+          .replace(/\t/g, '\\t')    // 替换制表符
+          .trim();
+
+        const parsed = JSON.parse(cleanJsonStr);
         console.log('Cohere从代码块解析JSON成功:', parsed.title);
         return parsed;
       } catch (parseError) {
         console.log('Cohere代码块JSON解析失败，尝试修复:', parseError);
         // 尝试修复不完整的JSON
         let jsonStr = codeBlockMatch[1].trim();
+
+        // 清理控制字符
+        jsonStr = jsonStr
+          .replace(/\r\n/g, '\\n')
+          .replace(/\n/g, '\\n')
+          .replace(/\r/g, '\\r')
+          .replace(/\t/g, '\\t');
+
         if (!jsonStr.endsWith('}')) {
           jsonStr += '"}]}'; // 尝试添加可能的结束符
         }
