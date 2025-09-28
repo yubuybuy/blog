@@ -4,6 +4,7 @@ import { useState } from 'react'
 import RecycleBinTab from '@/components/admin/RecycleBinTab'
 import AIGeneratorTab from '@/components/admin/AIGeneratorTab'
 import SanityStudioTab from '@/components/admin/SanityStudioTab'
+import PostManagementTab from '@/components/admin/PostManagementTab'
 
 // 密码保护组件
 function AdminPasswordProtection({ onSuccess }: { onSuccess: () => void }) {
@@ -95,10 +96,11 @@ function AdminPasswordProtection({ onSuccess }: { onSuccess: () => void }) {
 
 // 主管理界面
 function AdminDashboard({ onLogout }: { onLogout: () => void }) {
-  const [activeTab, setActiveTab] = useState<'ai' | 'recycle' | 'sanity'>('ai')
+  const [activeTab, setActiveTab] = useState<'ai' | 'posts' | 'recycle' | 'sanity'>('ai')
 
   const tabs = [
     { id: 'ai' as const, name: '🤖 AI内容生成', icon: '🚀' },
+    { id: 'posts' as const, name: '📚 文章管理', icon: '📝' },
     { id: 'recycle' as const, name: '🗑️ 回收站管理', icon: '♻️' },
     { id: 'sanity' as const, name: '📝 内容管理', icon: '⚙️' }
   ]
@@ -146,6 +148,7 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
       {/* 内容区域 */}
       <div className="max-w-7xl mx-auto">
         {activeTab === 'ai' && <AIGeneratorTab />}
+        {activeTab === 'posts' && <PostManagementTab />}
         {activeTab === 'recycle' && <RecycleBinTab />}
         {activeTab === 'sanity' && <SanityStudioTab />}
       </div>
