@@ -20,7 +20,7 @@ export interface GenerationConfig {
     cohere: {
       temperature: 0.75;       // 略微提高创意度
       maxTokens: 800;          // 增加输出长度
-      model: 'command';
+      model: 'command-r-plus'; // 使用新的可用模型
       presencePenalty: 0.1;    // 减少重复内容
       frequencyPenalty: 0.1;   // 增加词汇多样性
     };
@@ -53,7 +53,7 @@ export const CURRENT_CONFIG: GenerationConfig = {
     cohere: {
       temperature: 0.75, // 略微提高创意度
       maxTokens: 800,    // 增加输出长度
-      model: 'command',
+      model: 'command-r-plus',
       presencePenalty: 0.1,  // 减少重复内容
       frequencyPenalty: 0.1  // 增加词汇多样性
     }
