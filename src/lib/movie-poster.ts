@@ -64,21 +64,42 @@ export async function getMoviePoster(movieTitle: string): Promise<string | null>
     console.log('TMDB 搜索结果数量:', data.results.length);
 
     if (data.results.length > 0) {
-      const movie = data.results[0];
-      console.log('找到的电影:', {
-        title: movie.title,
-        original_title: movie.original_title,
-        release_date: movie.release_date,
-        poster_path: movie.poster_path
+      console.log('所有搜索结果:');
+      data.results.forEach((movie, index) => {
+        console.log(`${index + 1}. ${movie.title} (${movie.original_title}) - ${movie.release_date}`);
       });
 
-      if (movie.poster_path) {
+      // 改进选择逻辑：优先选择最匹配的电影
+      let bestMatch = data.results[0];
+
+      // 寻找标题完全匹配的电影
+      const exactMatch = data.results.find(movie =>
+        movie.title.toLowerCase() === normalizedTitle.toLowerCase() ||
+        movie.original_title.toLowerCase() === normalizedTitle.toLowerCase()
+      );
+
+      if (exactMatch) {
+        bestMatch = exactMatch;
+        console.log('🎯 找到完全匹配的电影:', bestMatch.title);
+      } else {
+        // 如果没有完全匹配，选择第一个结果但记录这是部分匹配
+        console.log('📝 使用部分匹配的电影:', bestMatch.title);
+      }
+
+      console.log('最终选择的电影:', {
+        title: bestMatch.title,
+        original_title: bestMatch.original_title,
+        release_date: bestMatch.release_date,
+        poster_path: bestMatch.poster_path
+      });
+
+      if (bestMatch.poster_path) {
         // 使用更高清的w780尺寸，更适合显示
-        const posterUrl = `https://image.tmdb.org/t/p/w780${movie.poster_path}`;
+        const posterUrl = `https://image.tmdb.org/t/p/w780${bestMatch.poster_path}`;
         console.log('✅ 成功获取电影海报:', posterUrl);
         return posterUrl;
       } else {
-        console.log('⚠️ 电影存在但没有海报');
+        console.log('⚠️ 选中电影没有海报');
       }
     } else {
       console.log('⚠️ 未找到匹配的电影');

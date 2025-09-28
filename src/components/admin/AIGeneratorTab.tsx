@@ -44,6 +44,8 @@ export default function AIGeneratorTab() {
   // 生成控制
   const [isGenerating, setIsGenerating] = useState(false)
   const [result, setResult] = useState<GeneratedContent | null>(null)
+  const [aiMethod, setAiMethod] = useState<string>('')
+  const [processingTime, setProcessingTime] = useState<number>(0)
 
   // 高级设置
   const [contentTemplate, setContentTemplate] = useState<'movieReview' | 'enhanced' | 'safe'>('movieReview')
@@ -85,10 +87,16 @@ export default function AIGeneratorTab() {
 
       if (data.success) {
         setResult(data.content)
+        setAiMethod(data.method || 'unknown')
+        setProcessingTime(data.processingTime || 0)
+
+        const aiName = data.method === 'gemini' ? 'Google Gemini' :
+                      data.method === 'cohere' ? 'Cohere AI' : 'AI'
+
         if (!generateOnly) {
-          alert('内容生成并发布成功！')
+          alert(`✅ 内容生成并发布成功！\n🤖 AI服务: ${aiName}\n⏱️ 耗时: ${data.processingTime || 0}ms`)
         } else {
-          alert('内容生成完成，请检查后手动发布')
+          alert(`✅ 内容生成完成！\n🤖 AI服务: ${aiName}\n⏱️ 耗时: ${data.processingTime || 0}ms\n\n请检查后手动发布`)
         }
       } else {
         throw new Error(data.error || '生成失败')
@@ -275,6 +283,24 @@ export default function AIGeneratorTab() {
             <h3 className="text-lg font-semibold mb-4">📄 生成结果</h3>
             {result ? (
               <div className="space-y-4">
+                {/* AI信息面板 */}
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                  <div className="flex items-center justify-between text-sm">
+                    <div className="flex items-center gap-4">
+                      <span className="font-medium text-green-800">
+                        🤖 AI服务: {aiMethod === 'gemini' ? 'Google Gemini' :
+                                   aiMethod === 'cohere' ? 'Cohere AI' : 'Unknown AI'}
+                      </span>
+                      <span className="text-green-700">
+                        ⏱️ 耗时: {processingTime}ms
+                      </span>
+                    </div>
+                    <span className="text-green-600 text-xs bg-green-100 px-2 py-1 rounded">
+                      ✅ 生成成功
+                    </span>
+                  </div>
+                </div>
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     标题
