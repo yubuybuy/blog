@@ -98,70 +98,6 @@ interface GeneratedContent {
   imagePrompt: string;
 }
 
-// 智谱GLM AI生成（测试优化参数）
-async function generateWithZhipu(resourceInfo: ResourceInfo): Promise<GeneratedContent | null> {
-  const apiKey = process.env.ZHIPU_API_KEY;
-  if (!apiKey) return null;
-
-  try {
-    // 使用影评作者模板并替换变量
-    const prompt = PROMPT_TEMPLATES.movieReview
-      .replace('{title}', resourceInfo.title)
-      .replace('{category}', resourceInfo.category)
-      .replace('{tags}', resourceInfo.tags.join(', '))
-      .replace('{description}', resourceInfo.description || '暂无详细描述')
-      .replace('{downloadLink}', resourceInfo.downloadLink || '#');
-
-    const response = await fetch('https://open.bigmodel.cn/api/paas/v4/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'glm-4',
-        messages: [{
-          role: 'user',
-          content: prompt
-        }],
-        temperature: CURRENT_CONFIG.modelParams.gemini.temperature,
-        max_tokens: CURRENT_CONFIG.modelParams.gemini.maxTokens,
-        top_p: CURRENT_CONFIG.modelParams.gemini.topP
-      })
-    });
-
-    if (!response.ok) {
-      throw new Error(`智谱API error: ${response.status}`);
-    }
-
-    const data = await response.json();
-    const text = data.choices[0].message.content;
-
-    // 解析JSON响应
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      try {
-        return JSON.parse(jsonMatch[0]);
-      } catch (parseError) {
-        console.error('JSON解析失败:', parseError);
-      }
-    }
-
-    // 降级处理
-    return {
-      title: `${resourceInfo.category}精选资源分享`,
-      excerpt: `为您整理的高质量${resourceInfo.category}资源，包含${resourceInfo.tags.slice(0, 2).join('、')}等内容。`,
-      content: `# ${resourceInfo.category}资源分享\n\n本次为大家整理了优质${resourceInfo.category}资源，经过精心筛选，确保质量。\n\n## 免责声明\n本站仅提供信息分享，请支持正版内容。`,
-      tags: resourceInfo.tags,
-      imagePrompt: 'abstract digital art, modern design'
-    };
-
-  } catch (error) {
-    console.error('智谱生成失败:', error);
-    return null;
-  }
-}
-
 // Google Gemini AI生成（优化版）
 async function generateWithGemini(resourceInfo: ResourceInfo): Promise<GeneratedContent | null> {
   const apiKey = process.env.GEMINI_API_KEY;
@@ -234,14 +170,9 @@ async function generateWithGemini(resourceInfo: ResourceInfo): Promise<Generated
       }
     }
 
-    // 降级处理
-    return {
-      title: `${resourceInfo.category}精选资源分享`,
-      excerpt: `为您整理的高质量${resourceInfo.category}资源，包含${resourceInfo.tags.slice(0, 2).join('、')}等内容。`,
-      content: `# ${resourceInfo.category}资源分享\n\n本次为大家整理了优质${resourceInfo.category}资源，经过精心筛选，确保质量。\n\n## 免责声明\n本站仅提供信息分享，请支持正版内容。`,
-      tags: resourceInfo.tags,
-      imagePrompt: 'abstract digital art, modern design'
-    };
+    // 如果所有解析都失败，返回null
+    console.error('Gemini无法解析任何有效的JSON响应');
+    return null;
 
   } catch (error) {
     console.error('Gemini生成失败:', error);
@@ -318,41 +249,14 @@ async function generateWithCohere(resourceInfo: ResourceInfo): Promise<Generated
       }
     }
 
-    // 如果没有JSON格式，构建结构化内容
-    return {
-      title: `${resourceInfo.category}资源精选合集`,
-      excerpt: `高质量${resourceInfo.category}资源分享，包含${resourceInfo.tags.slice(0, 2).join('、')}等内容。`,
-      content: `# ${resourceInfo.category}资源分享\n\n${generatedText}\n\n## 免责声明\n本站仅提供信息分享，请支持正版内容。`,
-      tags: resourceInfo.tags,
-      imagePrompt: `${resourceInfo.category.toLowerCase()} themed abstract art`
-    };
+    // 如果所有解析都失败，返回null
+    console.error('Cohere无法解析任何有效的JSON响应');
+    return null;
 
   } catch (error) {
     console.error('Cohere生成失败:', error);
     return null;
   }
-}
-
-// 模板生成（备用）
-function generateWithTemplate(resourceInfo: ResourceInfo): GeneratedContent {
-  return {
-    title: `精选${resourceInfo.category}资源合集`,
-    excerpt: `为${resourceInfo.category}爱好者整理的高质量资源分享，包含${resourceInfo.tags.join('、')}等优质内容。`,
-    content: `# ${resourceInfo.category}资源分享
-
-## 🌟 资源特色
-- **高质量内容**: 精心筛选，确保品质
-- **分类清晰**: 便于查找和使用
-- **定期更新**: 持续提供新鲜内容
-
-## 📋 使用说明
-建议根据个人需求选择合适的内容，合理使用资源。
-
-## ⚖️ 免责声明
-本站仅提供信息分享，不承担任何版权责任。请仅用于个人学习交流，支持正版内容。如有侵权，请联系删除。`,
-    tags: [...resourceInfo.tags, '资源', '分享'],
-    imagePrompt: 'abstract digital art, modern gradient colors'
-  };
 }
 
 // 处理图片插入 - 仅TMDB版本
