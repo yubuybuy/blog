@@ -163,7 +163,7 @@ export default function AdminPage() {
 
   // 设置页面标题
   useEffect(() => {
-    document.title = '👑 BOSS管理后台 - 网站管理中心'
+    document.title = '📊 BOSS管理中心 - 网盘博客管理系统'
   }, [])
 
   const handleLogin = () => {
