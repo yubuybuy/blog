@@ -109,6 +109,64 @@ export default function AIGeneratorTab() {
     }
   }
 
+  // 手动发布预览内容
+  const handleManualPublish = async () => {
+    if (!result) {
+      alert('没有可发布的内容')
+      return
+    }
+
+    setIsGenerating(true)
+
+    try {
+      const response = await fetch('/api/generate-content', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          resource,
+          generateOnly: false, // 设置为发布模式
+          template: contentTemplate,
+          publishPregenerated: true, // 标记这是发布预生成的内容
+          content: result // 传递已生成的内容
+        })
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || `HTTP error! status: ${response.status}`)
+      }
+
+      const data = await response.json()
+
+      if (data.success) {
+        const aiName = aiMethod === 'gemini' ? 'Google Gemini' :
+                      aiMethod === 'cohere' ? 'Cohere AI' : 'AI'
+
+        alert(`✅ 内容发布成功！\n🤖 AI服务: ${aiName}\n📝 文章已上线`)
+
+        // 清空表单，准备下一次生成
+        setResult(null)
+        setResource({
+          title: '',
+          category: '',
+          files: [],
+          tags: [],
+          description: '',
+          downloadLink: ''
+        })
+      } else {
+        throw new Error(data.error || '发布失败')
+      }
+    } catch (error) {
+      console.error('发布错误:', error)
+      alert(`发布失败: ${error instanceof Error ? error.message : '未知错误'}`)
+    } finally {
+      setIsGenerating(false)
+    }
+  }
+
   // 批量导入CSV
   const handleBatchImport = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
@@ -466,6 +524,25 @@ export default function AIGeneratorTab() {
                     {result.content}
                   </pre>
                 </div>
+
+                {/* 手动发布按钮 - 仅在预览模式下显示 */}
+                {generateOnly && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h4 className="text-sm font-medium text-blue-800 mb-1">📝 内容预览完成</h4>
+                        <p className="text-xs text-blue-600">内容已生成，请检查后手动发布到网站</p>
+                      </div>
+                      <button
+                        onClick={handleManualPublish}
+                        disabled={isGenerating}
+                        className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 disabled:bg-gray-400 transition-colors"
+                      >
+                        {isGenerating ? '🔄 发布中...' : '📤 立即发布'}
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="text-center text-gray-500 py-12">

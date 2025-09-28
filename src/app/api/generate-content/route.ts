@@ -489,7 +489,7 @@ export async function POST(request: NextRequest) {
       }, { status: 429 });
     }
 
-    const { resource, generateOnly = false } = await request.json();
+    const { resource, generateOnly = false, publishPregenerated = false, content } = await request.json();
 
     if (!resource) {
       return NextResponse.json({ error: '缺少资源信息' }, { status: 400 });
@@ -515,22 +515,33 @@ export async function POST(request: NextRequest) {
 
     console.log('✅ 安全检查通过，开始生成内容:', cleanResource.title);
 
-    // 先尝试Gemini，失败后使用Cohere作为备选
-    let generatedContent = await generateWithGemini(cleanResource);
-    let aiMethod = 'gemini';
+    let generatedContent;
+    let aiMethod = 'unknown';
 
-    if (!generatedContent) {
-      console.log('Gemini失败，尝试Cohere备选 - IP:', clientIp);
-      generatedContent = await generateWithCohere(cleanResource);
-      aiMethod = 'cohere';
-    }
+    // 如果是发布预生成内容，直接使用提供的内容
+    if (publishPregenerated && content) {
+      console.log('📝 使用预生成内容进行发布');
+      generatedContent = content;
+      aiMethod = 'pregenerated';
+    } else {
+      // 正常AI生成流程
+      // 先尝试Gemini，失败后使用Cohere作为备选
+      generatedContent = await generateWithGemini(cleanResource);
+      aiMethod = 'gemini';
 
-    if (!generatedContent) {
-      console.log('所有AI服务都失败 - IP:', clientIp);
-      return NextResponse.json({
-        error: 'AI服务暂时不可用，请检查网络连接或稍后重试',
-        details: '所有AI API都无法访问'
-      }, { status: 503 });
+      if (!generatedContent) {
+        console.log('Gemini失败，尝试Cohere备选 - IP:', clientIp);
+        generatedContent = await generateWithCohere(cleanResource);
+        aiMethod = 'cohere';
+      }
+
+      if (!generatedContent) {
+        console.log('所有AI服务都失败 - IP:', clientIp);
+        return NextResponse.json({
+          error: 'AI服务暂时不可用，请检查网络连接或稍后重试',
+          details: '所有AI API都无法访问'
+        }, { status: 503 });
+      }
     }
 
     const processingTime = Date.now() - startTime;
