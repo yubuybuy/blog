@@ -208,15 +208,44 @@ async function generateWithGemini(resourceInfo: ResourceInfo): Promise<Generated
 
     const data = await response.json();
     const text = data.candidates[0].content.parts[0].text;
+    console.log('Gemini原始响应:', text.substring(0, 200) + '...');
 
-    // 解析JSON响应
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    // 改进的JSON解析逻辑
+    let jsonContent = null;
+
+    // 方法1: 直接查找JSON块
+    const jsonMatch = text.match(/\{[\s\S]*?\}/);
     if (jsonMatch) {
       try {
-        return JSON.parse(jsonMatch[0]);
+        jsonContent = JSON.parse(jsonMatch[0]);
+        console.log('✅ JSON解析成功');
       } catch (parseError) {
-        console.error('JSON解析失败:', parseError);
+        console.error('JSON解析失败，尝试清理:', parseError);
+
+        // 方法2: 清理并重试
+        try {
+          const cleanedJson = jsonMatch[0]
+            .replace(/```json/g, '')
+            .replace(/```/g, '')
+            .replace(/\n/g, ' ')
+            .trim();
+          jsonContent = JSON.parse(cleanedJson);
+          console.log('✅ 清理后JSON解析成功');
+        } catch (secondError) {
+          console.error('清理后仍解析失败:', secondError);
+        }
       }
+    }
+
+    if (jsonContent && jsonContent.title && jsonContent.content) {
+      // 验证和修复内容
+      return {
+        title: jsonContent.title.slice(0, 100), // 限制标题长度
+        excerpt: jsonContent.excerpt?.slice(0, 200) || `${resourceInfo.category}精选资源分享`,
+        content: jsonContent.content,
+        tags: Array.isArray(jsonContent.tags) ? jsonContent.tags.slice(0, 8) : resourceInfo.tags,
+        imagePrompt: jsonContent.imagePrompt || 'abstract digital art, modern design'
+      };
     }
 
     // 降级处理
@@ -276,15 +305,39 @@ async function generateWithCohere(resourceInfo: ResourceInfo): Promise<Generated
 
     const data = await response.json();
     const generatedText = data.text; // Chat API返回格式不同
+    console.log('Cohere原始响应:', generatedText.substring(0, 200) + '...');
 
-    // Cohere Chat API不直接支持JSON输出，需要解析或构建结构化内容
-    const jsonMatch = generatedText.match(/\{[\s\S]*\}/);
+    // 改进的JSON解析逻辑
+    let jsonContent = null;
+    const jsonMatch = generatedText.match(/\{[\s\S]*?\}/);
     if (jsonMatch) {
       try {
-        return JSON.parse(jsonMatch[0]);
+        jsonContent = JSON.parse(jsonMatch[0]);
+        console.log('✅ Cohere JSON解析成功');
       } catch (parseError) {
-        console.log('Cohere JSON解析失败，使用结构化处理');
+        console.error('Cohere JSON解析失败，尝试清理:', parseError);
+        try {
+          const cleanedJson = jsonMatch[0]
+            .replace(/```json/g, '')
+            .replace(/```/g, '')
+            .replace(/\n/g, ' ')
+            .trim();
+          jsonContent = JSON.parse(cleanedJson);
+          console.log('✅ Cohere清理后JSON解析成功');
+        } catch (secondError) {
+          console.error('Cohere清理后仍解析失败:', secondError);
+        }
       }
+    }
+
+    if (jsonContent && jsonContent.title && jsonContent.content) {
+      return {
+        title: jsonContent.title.slice(0, 100),
+        excerpt: jsonContent.excerpt?.slice(0, 200) || `${resourceInfo.category}精选资源分享`,
+        content: jsonContent.content,
+        tags: Array.isArray(jsonContent.tags) ? jsonContent.tags.slice(0, 8) : resourceInfo.tags,
+        imagePrompt: jsonContent.imagePrompt || 'abstract digital art, modern design'
+      };
     }
 
     // 如果没有JSON格式，构建结构化内容
