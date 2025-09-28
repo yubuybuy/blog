@@ -26,7 +26,7 @@ export async function getSiteName(): Promise<string> {
 
 export async function getPosts() {
   const query = `
-    *[_type == "post"] | order(publishedAt desc) {
+    *[_type == "post" && !defined(deleted)] | order(publishedAt desc) {
       _id,
       title,
       slug,
@@ -57,7 +57,7 @@ export async function getPosts() {
 
 export async function getPost(slug: string) {
   const query = `
-    *[_type == "post" && slug.current == $slug][0] {
+    *[_type == "post" && slug.current == $slug && !defined(deleted)][0] {
       _id,
       title,
       slug,
@@ -97,7 +97,7 @@ export async function getCategories() {
 
 export async function getPostsByCategory(categorySlug: string) {
   const query = `
-    *[_type == "post" && references(*[_type == "category" && slug.current == $categorySlug]._id)] | order(publishedAt desc) {
+    *[_type == "post" && !defined(deleted) && references(*[_type == "category" && slug.current == $categorySlug]._id)] | order(publishedAt desc) {
       _id,
       title,
       slug,
@@ -121,7 +121,7 @@ export async function getPostsByCategory(categorySlug: string) {
 
 export async function searchPosts(searchQuery: string) {
   const query = `
-    *[_type == "post" && (title match $searchQuery || excerpt match $searchQuery)] | order(publishedAt desc) {
+    *[_type == "post" && !defined(deleted) && (title match $searchQuery || excerpt match $searchQuery)] | order(publishedAt desc) {
       _id,
       title,
       slug,
