@@ -505,19 +505,14 @@ export async function POST(request: NextRequest) {
 
     console.log('✅ 安全检查通过，开始生成内容:', cleanResource.title);
 
-    // 只使用国外AI服务 - Gemini优先
-    let generatedContent = await generateWithGemini(cleanResource);
+    // 直接使用Cohere，不再尝试Gemini
+    let generatedContent = await generateWithCohere(cleanResource);
 
     if (!generatedContent) {
-      console.log('Gemini失败，尝试Cohere...');
-      generatedContent = await generateWithCohere(cleanResource);
-    }
-
-    if (!generatedContent) {
-      console.log('所有AI服务均失败 - IP:', clientIp);
+      console.log('Cohere失败 - IP:', clientIp);
       return NextResponse.json({
         error: 'AI服务暂时不可用，请检查网络连接或稍后重试',
-        details: 'Gemini和Cohere API均无法访问'
+        details: 'Cohere API无法访问'
       }, { status: 503 });
     }
 
