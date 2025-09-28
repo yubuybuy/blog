@@ -120,11 +120,15 @@ export const PROMPT_TEMPLATES = {
 - 链接格式必须是：[点击获取高清资源]({downloadLink})
 - 不要在文章其他地方重复提到网盘链接
 
+重要：JSON格式要求
+- content字段中的换行请使用\\n，不要使用真实换行符
+- 确保JSON格式严格正确，可以被JSON.parse()解析
+
 请按JSON格式返回：
 {
   "title": "吸引人的文章标题",
   "excerpt": "50-80字的文章摘要",
-  "content": "完整的影评文章内容(markdown格式)",
+  "content": "完整的影评文章内容(markdown格式，换行用\\n)",
   "tags": ["相关标签"],
   "imagePrompt": "电影海报相关的图片描述"
 }`,
