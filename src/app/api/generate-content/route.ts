@@ -146,11 +146,11 @@ async function generateWithGemini(resourceInfo: ResourceInfo): Promise<Generated
 
     console.log('Gemini原始响应:', text.substring(0, 500) + '...');
 
-    // 尝试从markdown代码块中提取JSON（使用和Cohere相同的修复逻辑）
+    // 尝试从markdown代码块中提取JSON（与Cohere使用完全相同的逻辑）
     const codeBlockMatch = text.match(/```json\s*([\s\S]*?)\s*```/);
     if (codeBlockMatch) {
       try {
-        // 应用相同的JSON修复逻辑
+        // 使用与Cohere完全相同的修复逻辑
         let jsonStr = codeBlockMatch[1]
           .trim()
           .replace(/\n/g, '\\n')
@@ -161,23 +161,8 @@ async function generateWithGemini(resourceInfo: ResourceInfo): Promise<Generated
         return parsed;
       } catch (parseError) {
         console.log('Gemini代码块JSON解析失败:', parseError);
-      }
-    }
-
-    // 增强的JSON解析逻辑（直接从文本中提取）
-    let jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      try {
-        // 应用相同的修复逻辑
-        let jsonStr = jsonMatch[0]
-          .replace(/\n/g, '\\n')
-          .replace(/\r/g, '\\r');
-
-        const parsed = JSON.parse(jsonStr);
-        console.log('Gemini JSON解析成功:', parsed.title);
-        return parsed;
-      } catch (parseError) {
-        console.error('Gemini JSON解析失败:', parseError);
+        console.log('原始JSON前200字符:', codeBlockMatch[1].substring(0, 200));
+        return null;
       }
     }
 
