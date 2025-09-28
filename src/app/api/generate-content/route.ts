@@ -238,14 +238,31 @@ async function generateWithCohere(resourceInfo: ResourceInfo): Promise<Generated
     }
 
     // 尝试从markdown代码块中提取JSON
-    const codeBlockMatch = generatedText.match(/```json\s*([\s\S]*?)\s*```/);
+    let codeBlockMatch = generatedText.match(/```json\s*([\s\S]*?)\s*```/);
+    if (!codeBlockMatch) {
+      // 如果没有完整的代码块，尝试匹配不完整的
+      codeBlockMatch = generatedText.match(/```json\s*([\s\S]*?)$/);
+    }
+
     if (codeBlockMatch) {
       try {
         const parsed = JSON.parse(codeBlockMatch[1]);
         console.log('Cohere从代码块解析JSON成功:', parsed.title);
         return parsed;
       } catch (parseError) {
-        console.log('Cohere代码块JSON解析失败:', parseError);
+        console.log('Cohere代码块JSON解析失败，尝试修复:', parseError);
+        // 尝试修复不完整的JSON
+        let jsonStr = codeBlockMatch[1].trim();
+        if (!jsonStr.endsWith('}')) {
+          jsonStr += '"}]}'; // 尝试添加可能的结束符
+        }
+        try {
+          const parsed = JSON.parse(jsonStr);
+          console.log('Cohere修复JSON成功:', parsed.title);
+          return parsed;
+        } catch (fixError) {
+          console.log('Cohere JSON修复也失败:', fixError);
+        }
       }
     }
 
