@@ -213,8 +213,8 @@ async function generateWithGemini(resourceInfo: ResourceInfo): Promise<Generated
     // 改进的JSON解析逻辑
     let jsonContent = null;
 
-    // 方法1: 直接查找JSON块
-    const jsonMatch = text.match(/\{[\s\S]*?\}/);
+    // 方法1: 直接查找JSON块，使用非贪婪匹配
+    const jsonMatch = text.match(/\{[\s\S]*?\}(?=\s*$|\s*```|\s*\Z)/);
     if (jsonMatch) {
       try {
         jsonContent = JSON.parse(jsonMatch[0]);
@@ -224,15 +224,35 @@ async function generateWithGemini(resourceInfo: ResourceInfo): Promise<Generated
 
         // 方法2: 清理并重试
         try {
-          const cleanedJson = jsonMatch[0]
+          let cleanedJson = jsonMatch[0]
             .replace(/```json/g, '')
             .replace(/```/g, '')
             .replace(/\n/g, ' ')
             .trim();
+
+          // 移除可能的尾部垃圾字符
+          const lastBrace = cleanedJson.lastIndexOf('}');
+          if (lastBrace > 0) {
+            cleanedJson = cleanedJson.substring(0, lastBrace + 1);
+          }
+
           jsonContent = JSON.parse(cleanedJson);
           console.log('✅ 清理后JSON解析成功');
         } catch (secondError) {
           console.error('清理后仍解析失败:', secondError);
+
+          // 方法3: 尝试找到完整的JSON结构
+          try {
+            const startIndex = text.indexOf('{');
+            const endIndex = text.lastIndexOf('}');
+            if (startIndex >= 0 && endIndex > startIndex) {
+              const extractedJson = text.substring(startIndex, endIndex + 1);
+              jsonContent = JSON.parse(extractedJson);
+              console.log('✅ 提取完整JSON成功');
+            }
+          } catch (thirdError) {
+            console.error('所有JSON解析方法都失败:', thirdError);
+          }
         }
       }
     }
@@ -309,7 +329,7 @@ async function generateWithCohere(resourceInfo: ResourceInfo): Promise<Generated
 
     // 改进的JSON解析逻辑
     let jsonContent = null;
-    const jsonMatch = generatedText.match(/\{[\s\S]*?\}/);
+    const jsonMatch = generatedText.match(/\{[\s\S]*?\}(?=\s*$|\s*```|\s*\Z)/);
     if (jsonMatch) {
       try {
         jsonContent = JSON.parse(jsonMatch[0]);
@@ -317,15 +337,35 @@ async function generateWithCohere(resourceInfo: ResourceInfo): Promise<Generated
       } catch (parseError) {
         console.error('Cohere JSON解析失败，尝试清理:', parseError);
         try {
-          const cleanedJson = jsonMatch[0]
+          let cleanedJson = jsonMatch[0]
             .replace(/```json/g, '')
             .replace(/```/g, '')
             .replace(/\n/g, ' ')
             .trim();
+
+          // 移除可能的尾部垃圾字符
+          const lastBrace = cleanedJson.lastIndexOf('}');
+          if (lastBrace > 0) {
+            cleanedJson = cleanedJson.substring(0, lastBrace + 1);
+          }
+
           jsonContent = JSON.parse(cleanedJson);
           console.log('✅ Cohere清理后JSON解析成功');
         } catch (secondError) {
           console.error('Cohere清理后仍解析失败:', secondError);
+
+          // 尝试找到完整的JSON结构
+          try {
+            const startIndex = generatedText.indexOf('{');
+            const endIndex = generatedText.lastIndexOf('}');
+            if (startIndex >= 0 && endIndex > startIndex) {
+              const extractedJson = generatedText.substring(startIndex, endIndex + 1);
+              jsonContent = JSON.parse(extractedJson);
+              console.log('✅ Cohere提取完整JSON成功');
+            }
+          } catch (thirdError) {
+            console.error('Cohere所有JSON解析方法都失败:', thirdError);
+          }
         }
       }
     }
