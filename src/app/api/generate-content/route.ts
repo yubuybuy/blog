@@ -246,38 +246,43 @@ async function generateWithCohere(resourceInfo: ResourceInfo): Promise<Generated
 
     if (codeBlockMatch) {
       try {
-        // 清理JSON字符串中的控制字符
-        let cleanJsonStr = codeBlockMatch[1]
-          .replace(/\r\n/g, '\\n')  // 替换Windows换行符
-          .replace(/\n/g, '\\n')    // 替换Unix换行符
-          .replace(/\r/g, '\\r')    // 替换回车符
-          .replace(/\t/g, '\\t')    // 替换制表符
-          .trim();
+        // 提取JSON内容并清理首尾空白字符
+        let jsonContent = codeBlockMatch[1].trim();
 
-        const parsed = JSON.parse(cleanJsonStr);
+        // 移除开头的换行符和空白字符
+        jsonContent = jsonContent.replace(/^[\s\n\r]+/, '');
+
+        // 如果JSON内容包含换行的字符串，需要在content字段中正确处理换行
+        // 但保持JSON结构的完整性
+        const parsed = JSON.parse(jsonContent);
         console.log('Cohere从代码块解析JSON成功:', parsed.title);
         return parsed;
       } catch (parseError) {
         console.log('Cohere代码块JSON解析失败，尝试修复:', parseError);
+
         // 尝试修复不完整的JSON
         let jsonStr = codeBlockMatch[1].trim();
 
-        // 清理控制字符
-        jsonStr = jsonStr
-          .replace(/\r\n/g, '\\n')
-          .replace(/\n/g, '\\n')
-          .replace(/\r/g, '\\r')
-          .replace(/\t/g, '\\t');
+        // 移除开头的换行符
+        jsonStr = jsonStr.replace(/^[\s\n\r]+/, '');
 
-        if (!jsonStr.endsWith('}')) {
-          jsonStr += '"}]}'; // 尝试添加可能的结束符
+        // 检查是否需要补全结束符
+        if (!jsonStr.endsWith('}') && !jsonStr.endsWith('"}')) {
+          // 智能补全JSON结构
+          if (jsonStr.includes('"content":') && !jsonStr.includes('","tags"')) {
+            jsonStr += '","tags":[],"imagePrompt":""}';
+          } else if (!jsonStr.endsWith('}')) {
+            jsonStr += '}';
+          }
         }
+
         try {
           const parsed = JSON.parse(jsonStr);
           console.log('Cohere修复JSON成功:', parsed.title);
           return parsed;
         } catch (fixError) {
           console.log('Cohere JSON修复也失败:', fixError);
+          console.log('尝试解析的JSON字符串:', jsonStr.substring(0, 200) + '...');
         }
       }
     }
