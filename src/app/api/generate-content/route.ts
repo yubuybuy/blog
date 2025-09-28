@@ -146,27 +146,38 @@ async function generateWithGemini(resourceInfo: ResourceInfo): Promise<Generated
 
     console.log('Gemini原始响应:', text.substring(0, 500) + '...');
 
-    // 增强的JSON解析逻辑
-    let jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      try {
-        const parsed = JSON.parse(jsonMatch[0]);
-        console.log('Gemini JSON解析成功:', parsed.title);
-        return parsed;
-      } catch (parseError) {
-        console.error('Gemini JSON解析失败:', parseError);
-      }
-    }
-
-    // 尝试从markdown代码块中提取JSON
+    // 尝试从markdown代码块中提取JSON（使用和Cohere相同的修复逻辑）
     const codeBlockMatch = text.match(/```json\s*([\s\S]*?)\s*```/);
     if (codeBlockMatch) {
       try {
-        const parsed = JSON.parse(codeBlockMatch[1]);
+        // 应用相同的JSON修复逻辑
+        let jsonStr = codeBlockMatch[1]
+          .trim()
+          .replace(/\n/g, '\\n')
+          .replace(/\r/g, '\\r');
+
+        const parsed = JSON.parse(jsonStr);
         console.log('Gemini从代码块解析JSON成功:', parsed.title);
         return parsed;
       } catch (parseError) {
         console.log('Gemini代码块JSON解析失败:', parseError);
+      }
+    }
+
+    // 增强的JSON解析逻辑（直接从文本中提取）
+    let jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      try {
+        // 应用相同的修复逻辑
+        let jsonStr = jsonMatch[0]
+          .replace(/\n/g, '\\n')
+          .replace(/\r/g, '\\r');
+
+        const parsed = JSON.parse(jsonStr);
+        console.log('Gemini JSON解析成功:', parsed.title);
+        return parsed;
+      } catch (parseError) {
+        console.error('Gemini JSON解析失败:', parseError);
       }
     }
 
@@ -519,14 +530,21 @@ export async function POST(request: NextRequest) {
 
     console.log('✅ 安全检查通过，开始生成内容:', cleanResource.title);
 
-    // 直接使用Cohere，不再尝试Gemini
-    let generatedContent = await generateWithCohere(cleanResource);
+    // 先尝试Gemini，失败后使用Cohere作为备选
+    let generatedContent = await generateWithGemini(cleanResource);
+    let aiMethod = 'gemini';
 
     if (!generatedContent) {
-      console.log('Cohere失败 - IP:', clientIp);
+      console.log('Gemini失败，尝试Cohere备选');
+      generatedContent = await generateWithCohere(cleanResource);
+      aiMethod = 'cohere';
+    }
+
+    if (!generatedContent) {
+      console.log('所有AI服务都失败 - IP:', clientIp);
       return NextResponse.json({
         error: 'AI服务暂时不可用，请检查网络连接或稍后重试',
-        details: 'Cohere API无法访问'
+        details: '所有AI API都无法访问'
       }, { status: 503 });
     }
 
@@ -538,7 +556,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         success: true,
         content: generatedContent,
-        method: 'generated',
+        method: aiMethod,
         processingTime: processingTime
       });
     }
@@ -546,13 +564,13 @@ export async function POST(request: NextRequest) {
     // 发布到Sanity
     const publishedPost = await publishToSanity(generatedContent, cleanResource);
 
-    console.log(`🚀 内容发布成功 - 总用时: ${Date.now() - startTime}ms`);
+    console.log(`🚀 内容发布成功 - 总用时: ${Date.now() - startTime}ms - 使用AI: ${aiMethod}`);
 
     return NextResponse.json({
       success: true,
       content: generatedContent,
       published: publishedPost,
-      method: 'published',
+      method: aiMethod,
       processingTime: Date.now() - startTime
     });
 
