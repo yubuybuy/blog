@@ -208,13 +208,29 @@ async function generateWithGemini(resourceInfo: ResourceInfo): Promise<Generated
     const data = await response.json();
     const text = data.candidates[0].content.parts[0].text;
 
-    // 解析JSON响应
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    console.log('Gemini原始响应:', text.substring(0, 500) + '...');
+
+    // 增强的JSON解析逻辑
+    let jsonMatch = text.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
       try {
-        return JSON.parse(jsonMatch[0]);
+        const parsed = JSON.parse(jsonMatch[0]);
+        console.log('Gemini JSON解析成功:', parsed.title);
+        return parsed;
       } catch (parseError) {
-        console.error('JSON解析失败:', parseError);
+        console.error('Gemini JSON解析失败:', parseError);
+      }
+    }
+
+    // 尝试从markdown代码块中提取JSON
+    const codeBlockMatch = text.match(/```json\s*([\s\S]*?)\s*```/);
+    if (codeBlockMatch) {
+      try {
+        const parsed = JSON.parse(codeBlockMatch[1]);
+        console.log('Gemini从代码块解析JSON成功:', parsed.title);
+        return parsed;
+      } catch (parseError) {
+        console.log('Gemini代码块JSON解析失败:', parseError);
       }
     }
 
@@ -276,13 +292,29 @@ async function generateWithCohere(resourceInfo: ResourceInfo): Promise<Generated
     const data = await response.json();
     const generatedText = data.text; // Chat API返回格式不同
 
-    // Cohere Chat API不直接支持JSON输出，需要解析或构建结构化内容
-    const jsonMatch = generatedText.match(/\{[\s\S]*\}/);
+    console.log('Cohere原始响应:', generatedText.substring(0, 500) + '...');
+
+    // 增强的JSON解析逻辑
+    let jsonMatch = generatedText.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
       try {
-        return JSON.parse(jsonMatch[0]);
+        const parsed = JSON.parse(jsonMatch[0]);
+        console.log('Cohere JSON解析成功:', parsed.title);
+        return parsed;
       } catch (parseError) {
-        console.log('Cohere JSON解析失败，使用结构化处理');
+        console.log('Cohere JSON解析失败，使用结构化处理:', parseError);
+      }
+    }
+
+    // 尝试从markdown代码块中提取JSON
+    const codeBlockMatch = generatedText.match(/```json\s*([\s\S]*?)\s*```/);
+    if (codeBlockMatch) {
+      try {
+        const parsed = JSON.parse(codeBlockMatch[1]);
+        console.log('Cohere从代码块解析JSON成功:', parsed.title);
+        return parsed;
+      } catch (parseError) {
+        console.log('Cohere代码块JSON解析失败:', parseError);
       }
     }
 
