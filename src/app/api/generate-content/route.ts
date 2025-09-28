@@ -438,9 +438,18 @@ async function publishToSanity(content: GeneratedContent, resourceInfo: Resource
   try {
     // 处理内容中的图片占位符
     let processedContent = await processImagesInContent(content.content, resourceInfo);
+    console.log('处理图片后的内容长度:', processedContent?.length || 0);
+    console.log('处理图片后的内容预览:', processedContent?.substring(0, 100) || 'EMPTY');
 
     // 修复无效的网盘链接
     processedContent = fixInvalidLinks(processedContent, resourceInfo);
+    console.log('修复链接后的内容长度:', processedContent?.length || 0);
+
+    // 验证内容不为空
+    if (!processedContent || processedContent.trim().length === 0) {
+      console.error('❌ 处理后的内容为空！');
+      processedContent = `# ${content.title}\n\n内容生成出现问题，请稍后重试。\n\n## 免责声明\n本站仅提供信息分享，请支持正版内容。`;
+    }
 
     // 根据分类名称找到对应的分类ID
     const categoryRef = await findCategoryByName(resourceInfo.category);
@@ -666,6 +675,18 @@ export async function POST(request: NextRequest) {
         error: 'AI服务暂时不可用，请检查网络连接或稍后重试',
         details: 'Gemini和Cohere API均无法访问'
       }, { status: 503 });
+    }
+
+    // 验证生成的内容
+    console.log('生成的内容验证:');
+    console.log('- 标题:', generatedContent.title?.substring(0, 50) || 'EMPTY');
+    console.log('- 摘要:', generatedContent.excerpt?.substring(0, 50) || 'EMPTY');
+    console.log('- 内容长度:', generatedContent.content?.length || 0);
+    console.log('- 标签数量:', generatedContent.tags?.length || 0);
+
+    if (!generatedContent.content || generatedContent.content.trim().length === 0) {
+      console.error('❌ 生成的内容为空，使用降级处理');
+      generatedContent.content = `# ${generatedContent.title || '资源分享'}\n\n内容正在生成中，请稍后刷新查看。\n\n## 免责声明\n本站仅提供信息分享，请支持正版内容。`;
     }
 
     const processingTime = Date.now() - startTime;
