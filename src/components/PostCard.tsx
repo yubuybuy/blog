@@ -42,7 +42,20 @@ export default function PostCard({ post }: PostCardProps) {
       }
     }
 
-    // 如果都没有，强制生成一个占位图
+    // 如果都没有，检查是否为电影类内容
+    // 对于电影内容，如果没有海报则不显示图片
+    const isMoviePost = post.categories?.some(cat =>
+      ['电影', '影视', '娱乐', '剧集', '动画'].includes(cat.title)
+    ) || ['电影', '影片', '电视剧', '纪录片', '动画', '剧集'].some(keyword =>
+      post.title.includes(keyword)
+    );
+
+    if (isMoviePost) {
+      console.log('电影内容无海报，不显示图片');
+      return null; // 不显示图片
+    }
+
+    // 非电影内容才使用占位图
     const fallbackUrl = `https://picsum.photos/600/300?random=${Math.abs(post.title.charCodeAt(0))}`;
     console.log('使用fallback URL:', fallbackUrl);
     return fallbackUrl;
@@ -52,24 +65,26 @@ export default function PostCard({ post }: PostCardProps) {
 
   return (
     <article className="group bg-white rounded-3xl shadow-sm hover:shadow-2xl overflow-hidden border border-gray-100 hover:border-purple-200 transition-all duration-500 hover:-translate-y-2">
-      {/* 强制显示图片区域 */}
-      <Link href={`/posts/${post.slug.current}`}>
-        <div className="relative h-48 sm:h-56 w-full overflow-hidden">
-          <Image
-            src={imageUrl}
-            alt={post.mainImage?.alt || post.title}
-            fill
-            className="object-cover group-hover:scale-110 transition-transform duration-700"
-            unoptimized // 避免外部图片优化问题
-            onError={(e) => {
-              console.error('PostCard图片加载失败:', imageUrl);
-              // 显示另一个随机图片而不是错误信息
-              (e.target as HTMLImageElement).src = `https://picsum.photos/600/300?random=${Date.now()}`;
-            }}
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-        </div>
-      </Link>
+      {/* 只在有图片时显示图片区域 */}
+      {imageUrl && (
+        <Link href={`/posts/${post.slug.current}`}>
+          <div className="relative h-48 sm:h-56 w-full overflow-hidden">
+            <Image
+              src={imageUrl}
+              alt={post.mainImage?.alt || post.title}
+              fill
+              className="object-cover group-hover:scale-110 transition-transform duration-700"
+              unoptimized // 避免外部图片优化问题
+              onError={(e) => {
+                console.error('PostCard图片加载失败:', imageUrl);
+                // 图片加载失败时隐藏图片而不是显示另一个随机图片
+                (e.target as HTMLImageElement).style.display = 'none';
+              }}
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+          </div>
+        </Link>
+      )}
 
       <div className="p-6 sm:p-8">
         <div className="flex flex-wrap gap-2 mb-4">
