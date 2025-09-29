@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@sanity/client';
 import { CURRENT_CONFIG, PROMPT_TEMPLATES } from '@/lib/generation-config';
 import { generateContentImage } from '@/lib/movie-poster';
+import { processMoviePoster } from '@/lib/image-upload';
 
 const sanityClient = createClient({
   projectId: process.env.NEXT_PUBLIC_SANITY_PROJECT_ID!,
@@ -337,15 +338,24 @@ async function publishToSanity(content: GeneratedContent, resourceInfo: Resource
     // 根据分类名称找到对应的分类ID
     const categoryRef = await findCategoryByName(resourceInfo.category);
 
-    // 生成文章主图用于卡片显示 - 仅TMDB版本
-    const mainImageUrl = await generateContentImage(
+    // 生成文章主图用于卡片显示 - 上传到Sanity
+    const imageUrl = await generateContentImage(
       resourceInfo.title,
       resourceInfo.category,
       resourceInfo.tags,
       '文章封面'
     );
 
-    console.log('文章卡片图片URL:', mainImageUrl);
+    console.log('获取到的TMDB图片URL:', imageUrl);
+
+    // 将图片上传到Sanity（如果有的话）
+    let mainImage = null;
+    if (imageUrl) {
+      console.log('🔄 正在上传图片到Sanity...');
+      mainImage = await processMoviePoster(imageUrl, resourceInfo.title);
+      console.log('图片处理结果:', mainImage ? '✅ 成功' : '❌ 失败');
+    }
+
     console.log('关联的分类:', categoryRef ? `${resourceInfo.category} (ID: ${categoryRef._ref})` : '无分类');
 
     const post = {
@@ -366,9 +376,9 @@ async function publishToSanity(content: GeneratedContent, resourceInfo: Resource
       // 添加必要的字段让文章能够显示
       author: null,
       categories: categoryRef ? [categoryRef] : [], // 关联到对应分类
-      mainImage: null, // 不使用复杂的Sanity图片引用
-      // 直接使用图片URL字段
-      mainImageUrl: mainImageUrl
+      mainImage: mainImage, // 使用Sanity托管的图片
+      // 保留URL字段作为备份（兼容性）
+      mainImageUrl: imageUrl
     };
 
     const result = await sanityClient.create(post);
