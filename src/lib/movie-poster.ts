@@ -52,17 +52,18 @@ export async function getMoviePoster(movieTitle: string): Promise<string | null>
 
   try {
     const normalizedTitle = normalizeMovieName(movieTitle);
+    const year = extractYear(movieTitle);
     console.log('标准化后标题:', normalizedTitle);
+    console.log('提取的年份:', year);
 
-    // 首先尝试中文搜索
-    const searchUrl = `https://api.themoviedb.org/3/search/movie?api_key=${apiKey}&query=${encodeURIComponent(normalizedTitle)}&language=zh-CN`;
+    // 首先尝试中文搜索，如果有年份就加上年份参数
+    const searchUrl = `https://api.themoviedb.org/3/search/movie?api_key=${apiKey}&query=${encodeURIComponent(normalizedTitle)}&language=zh-CN${year ? `&year=${year}` : ''}`;
     console.log('TMDB 请求URL:', searchUrl.replace(apiKey, 'API_KEY_HIDDEN'));
 
     console.log('🔍 发起TMDB API请求...');
     const response = await fetch(searchUrl);
 
     console.log('TMDB 响应状态:', response.status);
-    console.log('TMDB 响应头:', Object.fromEntries(response.headers.entries()));
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -82,18 +83,32 @@ export async function getMoviePoster(movieTitle: string): Promise<string | null>
       // 改进选择逻辑：优先选择最匹配的电影
       let bestMatch = data.results[0];
 
-      // 寻找标题完全匹配的电影
-      const exactMatch = data.results.find(movie =>
-        movie.title.toLowerCase() === normalizedTitle.toLowerCase() ||
-        movie.original_title.toLowerCase() === normalizedTitle.toLowerCase()
-      );
+      // 如果有年份，优先选择年份匹配的电影
+      if (year) {
+        const yearMatch = data.results.find(movie =>
+          movie.release_date && movie.release_date.startsWith(year)
+        );
+        if (yearMatch) {
+          bestMatch = yearMatch;
+          console.log('🎯 找到年份匹配的电影:', bestMatch.title, bestMatch.release_date);
+        } else {
+          console.log('⚠️ 未找到年份匹配，使用第一个结果');
+        }
+      }
 
-      if (exactMatch) {
-        bestMatch = exactMatch;
-        console.log('🎯 找到完全匹配的电影:', bestMatch.title);
-      } else {
-        // 如果没有完全匹配，选择第一个结果但记录这是部分匹配
-        console.log('📝 使用部分匹配的电影:', bestMatch.title);
+      // 如果没有年份信息，寻找标题完全匹配的电影
+      if (!year) {
+        const exactMatch = data.results.find(movie =>
+          movie.title.toLowerCase() === normalizedTitle.toLowerCase() ||
+          movie.original_title.toLowerCase() === normalizedTitle.toLowerCase()
+        );
+
+        if (exactMatch) {
+          bestMatch = exactMatch;
+          console.log('🎯 找到完全匹配的电影:', bestMatch.title);
+        } else {
+          console.log('📝 使用部分匹配的电影:', bestMatch.title);
+        }
       }
 
       console.log('最终选择的电影:', {
@@ -104,7 +119,6 @@ export async function getMoviePoster(movieTitle: string): Promise<string | null>
       });
 
       if (bestMatch.poster_path) {
-        // 使用更高清的w780尺寸，更适合显示
         const posterUrl = `https://image.tmdb.org/t/p/w780${bestMatch.poster_path}`;
         console.log('✅ 成功获取电影海报:', posterUrl);
         return posterUrl;
@@ -112,22 +126,36 @@ export async function getMoviePoster(movieTitle: string): Promise<string | null>
         console.log('⚠️ 选中电影没有海报');
       }
     } else {
-      console.log('⚠️ 未找到匹配的电影');
+      console.log('⚠️ 中文搜索未找到匹配的电影');
 
       // 如果中文搜索无结果，尝试英文搜索
       console.log('🔄 尝试英文搜索...');
-      const enSearchUrl = `https://api.themoviedb.org/3/search/movie?api_key=${apiKey}&query=${encodeURIComponent(normalizedTitle)}&language=en-US`;
+      const enSearchUrl = `https://api.themoviedb.org/3/search/movie?api_key=${apiKey}&query=${encodeURIComponent(normalizedTitle)}&language=en-US${year ? `&year=${year}` : ''}`;
       const enResponse = await fetch(enSearchUrl);
 
       if (enResponse.ok) {
         const enData: TMDBResponse = await enResponse.json();
         console.log('英文搜索结果数量:', enData.results.length);
 
-        if (enData.results.length > 0 && enData.results[0].poster_path) {
-          // 英文搜索也使用高清w780
-          const posterUrl = `https://image.tmdb.org/t/p/w780${enData.results[0].poster_path}`;
-          console.log('✅ 英文搜索成功获取海报:', posterUrl);
-          return posterUrl;
+        if (enData.results.length > 0) {
+          let bestEnMatch = enData.results[0];
+
+          // 英文搜索也应用年份匹配
+          if (year) {
+            const yearMatch = enData.results.find(movie =>
+              movie.release_date && movie.release_date.startsWith(year)
+            );
+            if (yearMatch) {
+              bestEnMatch = yearMatch;
+              console.log('🎯 英文搜索找到年份匹配:', bestEnMatch.title, bestEnMatch.release_date);
+            }
+          }
+
+          if (bestEnMatch.poster_path) {
+            const posterUrl = `https://image.tmdb.org/t/p/w780${bestEnMatch.poster_path}`;
+            console.log('✅ 英文搜索成功获取海报:', posterUrl);
+            return posterUrl;
+          }
         }
       }
     }
