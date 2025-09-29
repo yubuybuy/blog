@@ -198,7 +198,7 @@ export function isMovieContent(title: string, category: string, tags: string[]):
   return hasMovieInTitle || hasMovieCategory || hasMovieTags;
 }
 
-// 主要的图片生成函数 - 仅使用TMDB
+// 主要的图片生成函数 - 添加备用机制
 export async function generateContentImage(
   title: string,
   category: string,
@@ -220,13 +220,35 @@ export async function generateContentImage(
       console.log('🎬 成功获取TMDB海报:', poster);
       return poster;
     } else {
-      console.log('❌ TMDB海报获取失败');
-      return null;
+      console.log('❌ TMDB海报获取失败，该电影可能不在TMDB数据库中');
+
+      // 为找不到海报的电影返回通用电影主题图片
+      console.log('🎭 使用通用电影主题图片作为替代');
+      return getMovieThemeImage(title);
     }
   } else {
     console.log('ℹ️ 非电影内容，跳过TMDB');
     return null;
   }
+}
+
+// 生成电影主题的通用图片
+function getMovieThemeImage(movieTitle: string): string {
+  // 基于电影标题生成稳定的主题图片
+  const hash = Math.abs(hashCode(movieTitle)) % 1000;
+
+  // 使用电影主题的图片集合
+  const movieThemes = [
+    `https://picsum.photos/800/1200?random=${hash}&blur=1`, // 模糊艺术风格
+    `https://source.unsplash.com/800x1200/?cinema,movie,film&${hash}`, // 电影主题
+    `https://source.unsplash.com/800x1200/?theater,cinema&${hash}` // 影院主题
+  ];
+
+  // 根据hash选择主题
+  const selectedTheme = movieThemes[hash % movieThemes.length];
+
+  console.log('🎨 生成电影主题图片:', selectedTheme);
+  return selectedTheme;
 }
 
 // 通用内容图片生成 - 使用可靠图片源
