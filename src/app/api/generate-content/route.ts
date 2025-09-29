@@ -593,7 +593,8 @@ export async function GET() {
     apis: {
       gemini: !!process.env.GEMINI_API_KEY,
       cohere: !!process.env.COHERE_API_KEY,
-      sanity: !!process.env.SANITY_API_TOKEN
+      sanity: !!process.env.SANITY_API_TOKEN,
+      tmdb: !!process.env.TMDB_API_KEY
     }
   });
 }
