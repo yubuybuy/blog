@@ -270,38 +270,18 @@ async function generateWithCohere(resourceInfo: ResourceInfo): Promise<Generated
   }
 }
 
-// 处理图片插入 - 仅TMDB版本
+// 处理图片插入 - 移除内容中的图片，改为使用PostCard显示
 async function processImagesInContent(content: string, resourceInfo: ResourceInfo): Promise<string> {
-  console.log('=== 开始处理文章图片 ===');
+  console.log('=== 开始处理文章内容图片 ===');
 
-  // 尝试获取TMDB图片
-  const imageUrl = await generateContentImage(
-    resourceInfo.title,
-    resourceInfo.category,
-    resourceInfo.tags,
-    '电影海报风格'
-  );
+  // 移除或替换IMAGE_PLACEHOLDER，不在内容中显示图片
+  let result = content.replace(/!\[([^\]]*)\]\(IMAGE_PLACEHOLDER\)/g, '');
 
-  console.log('获取到的图片URL:', imageUrl);
+  // 移除可能强制插入的图片（避免重复显示）
+  result = result.replace(/^!\[电影海报\]\([^)]+\)\n\n/, '');
 
-  if (imageUrl) {
-    // 有图片则替换占位符
-    let result = content.replace(/!\[([^\]]*)\]\(IMAGE_PLACEHOLDER\)/g, `![$1](${imageUrl})`);
-
-    // 如果没有找到占位符，强制在内容开头插入图片
-    if (!result.includes('![') && !content.includes('IMAGE_PLACEHOLDER')) {
-      console.log('未找到图片占位符，强制插入TMDB图片');
-      const imageMarkdown = `![电影海报](${imageUrl})\n\n`;
-      result = imageMarkdown + result;
-    }
-
-    console.log('✅ 成功插入TMDB图片');
-    return result;
-  } else {
-    console.log('⚠️ 未获取到TMDB图片，保持原内容');
-    // 没有图片就保持原内容，不插入任何图片
-    return content;
-  }
+  console.log('✅ 已清理内容中的图片占位符，图片将在PostCard中显示');
+  return result.trim();
 }
 
 // 修复无效网盘链接

@@ -16,14 +16,24 @@ interface TMDBResponse {
   total_results: number;
 }
 
-// 电影名称标准化处理
+// 电影名称标准化处理 - 改进版
 function normalizeMovieName(title: string): string {
   return title
     .replace(/[《》【】]/g, '') // 移除中文书名号
     .replace(/\([^)]*\)/g, '') // 移除括号内容
     .replace(/\s*-\s*.*$/, '') // 移除 - 后的内容
     .replace(/第[一二三四五六七八九十\d]+[部季]/g, '') // 移除"第X部/季"
+    .replace(/\.(\d{4})$/, ' $1') // 将.2006格式转换为 2006
+    .replace(/[\.·]/g, ' ') // 将点号转换为空格
+    .replace(/\s+/g, ' ') // 合并多个空格
     .trim();
+}
+
+// 提取年份信息
+function extractYear(title: string): string | null {
+  // 匹配各种年份格式
+  const yearMatch = title.match(/\.?(\d{4})(?:\D|$)/);
+  return yearMatch ? yearMatch[1] : null;
 }
 
 // 从TMDB获取电影海报 - 增强版调试
