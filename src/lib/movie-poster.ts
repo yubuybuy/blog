@@ -198,7 +198,7 @@ export function isMovieContent(title: string, category: string, tags: string[]):
   return hasMovieInTitle || hasMovieCategory || hasMovieTags;
 }
 
-// 主要的图片生成函数 - 添加备用机制
+// 主要的图片生成函数 - 改进TMDB搜索策略
 export async function generateContentImage(
   title: string,
   category: string,
@@ -215,16 +215,13 @@ export async function generateContentImage(
   if (isMovieContent(title, category, tags)) {
     console.log('✅ 检测到电影内容，尝试获取TMDB海报...');
 
-    const poster = await getMoviePoster(title);
+    const poster = await getMoviePosterEnhanced(title);
     if (poster) {
       console.log('🎬 成功获取TMDB海报:', poster);
       return poster;
     } else {
-      console.log('❌ TMDB海报获取失败，该电影可能不在TMDB数据库中');
-
-      // 为找不到海报的电影返回通用电影主题图片
-      console.log('🎭 使用通用电影主题图片作为替代');
-      return getMovieThemeImage(title);
+      console.log('❌ TMDB海报获取失败');
+      return null;
     }
   } else {
     console.log('ℹ️ 非电影内容，跳过TMDB');
@@ -232,23 +229,181 @@ export async function generateContentImage(
   }
 }
 
-// 生成电影主题的通用图片
-function getMovieThemeImage(movieTitle: string): string {
-  // 基于电影标题生成稳定的主题图片
-  const hash = Math.abs(hashCode(movieTitle)) % 1000;
+// 增强版电影海报获取 - 多种搜索策略
+export async function getMoviePosterEnhanced(movieTitle: string): Promise<string | null> {
+  console.log('=== 增强版TMDB搜索 ===');
+  console.log('原始标题:', movieTitle);
 
-  // 使用电影主题的图片集合
-  const movieThemes = [
-    `https://picsum.photos/800/1200?random=${hash}&blur=1`, // 模糊艺术风格
-    `https://source.unsplash.com/800x1200/?cinema,movie,film&${hash}`, // 电影主题
-    `https://source.unsplash.com/800x1200/?theater,cinema&${hash}` // 影院主题
-  ];
+  // 生成多种可能的搜索词
+  const searchVariants = generateSearchVariants(movieTitle);
+  console.log('生成的搜索变体:', searchVariants);
 
-  // 根据hash选择主题
-  const selectedTheme = movieThemes[hash % movieThemes.length];
+  // 依次尝试每种搜索策略
+  for (const variant of searchVariants) {
+    console.log(`🔍 尝试搜索: "${variant.query}" (策略: ${variant.strategy})`);
 
-  console.log('🎨 生成电影主题图片:', selectedTheme);
-  return selectedTheme;
+    const result = await searchTMDBMovie(variant.query, variant.year);
+    if (result) {
+      console.log(`✅ 找到海报 (策略: ${variant.strategy}):`, result);
+      return result;
+    }
+  }
+
+  console.log('❌ 所有搜索策略都失败');
+  return null;
+}
+
+// 生成搜索变体
+function generateSearchVariants(title: string): Array<{query: string, year?: string, strategy: string}> {
+  const variants = [];
+  const year = extractYear(title);
+
+  // 1. 标准化处理
+  const normalized = normalizeMovieName(title);
+  variants.push({ query: normalized, year, strategy: '标准化+年份' });
+  variants.push({ query: normalized, strategy: '标准化' });
+
+  // 2. 原始标题
+  const originalWithoutYear = title.replace(/\.?\d{4}/, '').trim();
+  variants.push({ query: originalWithoutYear, year, strategy: '原始+年份' });
+
+  // 3. 常见的电影名称映射
+  const mappings = getMovieNameMappings(title);
+  mappings.forEach(mapping => {
+    variants.push({ query: mapping, year, strategy: '名称映射+年份' });
+    variants.push({ query: mapping, strategy: '名称映射' });
+  });
+
+  // 4. 英文搜索（如果包含中文）
+  if (/[\u4e00-\u9fff]/.test(title)) {
+    const englishVariants = getEnglishVariants(title);
+    englishVariants.forEach(english => {
+      variants.push({ query: english, year, strategy: '英文翻译+年份' });
+      variants.push({ query: english, strategy: '英文翻译' });
+    });
+  }
+
+  // 去重
+  const unique = variants.filter((variant, index, self) =>
+    index === self.findIndex(v => v.query === variant.query && v.year === variant.year)
+  );
+
+  return unique;
+}
+
+// 常见电影名称映射
+function getMovieNameMappings(title: string): string[] {
+  const mappings: { [key: string]: string[] } = {
+    '谜之屋': ['Monster House', '怪兽屋', '鬼屋', 'House'],
+    '魔戒': ['Lord of the Rings', 'LOTR'],
+    '指环王': ['Lord of the Rings', 'LOTR'],
+    '哈利波特': ['Harry Potter'],
+    '变形金刚': ['Transformers'],
+    '复仇者联盟': ['Avengers'],
+    '钢铁侠': ['Iron Man'],
+    '蜘蛛侠': ['Spider-Man', 'Spiderman'],
+    '蝙蝠侠': ['Batman'],
+    '超人': ['Superman'],
+    '泰坦尼克号': ['Titanic'],
+    '阿凡达': ['Avatar'],
+    '星球大战': ['Star Wars'],
+    '侏罗纪公园': ['Jurassic Park'],
+    '终结者': ['Terminator'],
+    '黑客帝国': ['Matrix', 'The Matrix']
+  };
+
+  for (const [chinese, variants] of Object.entries(mappings)) {
+    if (title.includes(chinese)) {
+      return variants;
+    }
+  }
+
+  return [];
+}
+
+// 英文变体
+function getEnglishVariants(title: string): string[] {
+  // 这里可以添加更多的中英文对照
+  const commonTranslations: { [key: string]: string[] } = {
+    '谜之屋': ['Monster House', 'Mystery House', 'Haunted House'],
+    '恐怖': ['Horror', 'Terror'],
+    '鬼': ['Ghost', 'Spirit'],
+    '屋': ['House', 'Home'],
+    '房子': ['House', 'Home']
+  };
+
+  const variants = [];
+  for (const [chinese, english] of Object.entries(commonTranslations)) {
+    if (title.includes(chinese)) {
+      variants.push(...english);
+    }
+  }
+
+  return variants;
+}
+
+// 搜索TMDB电影
+async function searchTMDBMovie(query: string, year?: string): Promise<string | null> {
+  const apiKey = process.env.TMDB_API_KEY;
+  if (!apiKey) return null;
+
+  try {
+    // 尝试中文搜索
+    let searchUrl = `https://api.themoviedb.org/3/search/movie?api_key=${apiKey}&query=${encodeURIComponent(query)}&language=zh-CN${year ? `&year=${year}` : ''}`;
+
+    let response = await fetch(searchUrl);
+    if (response.ok) {
+      const data = await response.json();
+      if (data.results.length > 0) {
+        const movie = selectBestMatch(data.results, query, year);
+        if (movie?.poster_path) {
+          return `https://image.tmdb.org/t/p/w780${movie.poster_path}`;
+        }
+      }
+    }
+
+    // 如果中文搜索失败，尝试英文搜索
+    searchUrl = `https://api.themoviedb.org/3/search/movie?api_key=${apiKey}&query=${encodeURIComponent(query)}&language=en-US${year ? `&year=${year}` : ''}`;
+
+    response = await fetch(searchUrl);
+    if (response.ok) {
+      const data = await response.json();
+      if (data.results.length > 0) {
+        const movie = selectBestMatch(data.results, query, year);
+        if (movie?.poster_path) {
+          return `https://image.tmdb.org/t/p/w780${movie.poster_path}`;
+        }
+      }
+    }
+
+    return null;
+  } catch (error) {
+    console.error('TMDB搜索失败:', error);
+    return null;
+  }
+}
+
+// 选择最佳匹配的电影
+function selectBestMatch(results: any[], query: string, year?: string): any {
+  if (!results.length) return null;
+
+  // 如果有年份，优先选择年份匹配的
+  if (year) {
+    const yearMatch = results.find(movie =>
+      movie.release_date && movie.release_date.startsWith(year)
+    );
+    if (yearMatch) return yearMatch;
+  }
+
+  // 选择标题最匹配的
+  const exactMatch = results.find(movie =>
+    movie.title.toLowerCase() === query.toLowerCase() ||
+    movie.original_title.toLowerCase() === query.toLowerCase()
+  );
+  if (exactMatch) return exactMatch;
+
+  // 返回第一个结果
+  return results[0];
 }
 
 // 通用内容图片生成 - 使用可靠图片源
