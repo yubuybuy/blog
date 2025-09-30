@@ -43,13 +43,16 @@ export async function generateMetadata({ params }: PostPageProps) {
 const portableTextComponents = {
   types: {
     image: ({ value }: any) => (
-      <div className="my-8">
+      <div className="my-6 sm:my-8">
         <Image
           src={urlFor(value).width(800).height(400).url()}
           alt={value.alt || 'Article image'}
           width={800}
           height={400}
-          className="rounded-lg"
+          className="rounded-lg w-full h-auto"
+          loading="lazy"
+          quality={75}
+          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 80vw, 70vw"
         />
       </div>
     ),
@@ -91,19 +94,19 @@ const portableTextComponents = {
   },
   block: {
     h1: ({ children }: any) => (
-      <h1 className="text-3xl font-bold mt-8 mb-4">{children}</h1>
+      <h1 className="text-2xl sm:text-3xl font-bold mt-6 sm:mt-8 mb-3 sm:mb-4">{children}</h1>
     ),
     h2: ({ children }: any) => (
-      <h2 className="text-2xl font-bold mt-6 mb-3">{children}</h2>
+      <h2 className="text-xl sm:text-2xl font-bold mt-5 sm:mt-6 mb-2 sm:mb-3">{children}</h2>
     ),
     h3: ({ children }: any) => (
-      <h3 className="text-xl font-bold mt-5 mb-2">{children}</h3>
+      <h3 className="text-lg sm:text-xl font-bold mt-4 sm:mt-5 mb-2">{children}</h3>
     ),
     h4: ({ children }: any) => (
       <h4 className="text-lg font-bold mt-4 mb-2">{children}</h4>
     ),
     blockquote: ({ children }: any) => (
-      <blockquote className="border-l-4 border-gray-300 pl-4 italic my-4">
+      <blockquote className="border-l-4 border-gray-300 pl-3 sm:pl-4 italic my-4 text-sm sm:text-base">
         {children}
       </blockquote>
     ),
@@ -121,18 +124,19 @@ const portableTextComponents = {
                 const imageMatch = child.match(/!\[(.*?)\]\((.*?)\)/);
                 if (imageMatch) {
                   return (
-                    <div key={index} className="my-6">
+                    <div key={index} className="my-4 sm:my-6">
                       <Image
                         src={imageMatch[2]}
                         alt={imageMatch[1] || 'Generated image'}
                         width={800}
                         height={400}
-                        className="rounded-lg w-full"
-                        style={{ height: 'auto' }}
-                        unoptimized
+                        className="rounded-lg w-full h-auto"
+                        loading="lazy"
+                        quality={75}
+                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 80vw, 70vw"
                       />
                       {imageMatch[1] && (
-                        <p className="text-center text-sm text-gray-600 mt-2">{imageMatch[1]}</p>
+                        <p className="text-center text-xs sm:text-sm text-gray-600 mt-2">{imageMatch[1]}</p>
                       )}
                     </div>
                   );
@@ -143,7 +147,7 @@ const portableTextComponents = {
           </div>
         );
       }
-      return <p className="mb-4 leading-7">{children}</p>;
+      return <p className="mb-3 sm:mb-4 leading-6 sm:leading-7 text-sm sm:text-base">{children}</p>;
     },
   },
   list: {
@@ -263,17 +267,17 @@ export default async function PostPage({ params }: PostPageProps) {
       </header>
 
       {/* Article Content */}
-      {post.markdownContent ? (
-        // 使用自定义markdown处理
-        <MarkdownContent content={post.markdownContent} />
-      ) : post.body ? (
-        // 降级到原有的PortableText
-        <div className="prose prose-lg max-w-none">
+      <div className="prose prose-sm sm:prose-base lg:prose-lg max-w-none">
+        {post.markdownContent ? (
+          // 使用自定义markdown处理
+          <MarkdownContent content={post.markdownContent} />
+        ) : post.body ? (
+          // 降级到原有的PortableText
           <PortableText value={post.body} components={portableTextComponents} />
-        </div>
-      ) : (
-        <p>内容加载中...</p>
-      )}
+        ) : (
+          <p>内容加载中...</p>
+        )}
+      </div>
 
       {/* Author Bio */}
       {post.author?.bio && (

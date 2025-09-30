@@ -55,8 +55,8 @@ export default function PostCard({ post }: PostCardProps) {
       return null; // 不显示图片
     }
 
-    // 非电影内容才使用占位图
-    const fallbackUrl = `https://picsum.photos/600/300?random=${Math.abs(post.title.charCodeAt(0))}`;
+    // 非电影内容使用本地占位图片
+    const fallbackUrl = `/api/placeholder?text=${encodeURIComponent(post.title.slice(0, 10))}&width=600&height=300`;
     console.log('使用fallback URL:', fallbackUrl);
     return fallbackUrl;
   };
@@ -68,13 +68,15 @@ export default function PostCard({ post }: PostCardProps) {
       {/* 只在有图片时显示图片区域 */}
       {imageUrl && (
         <Link href={`/posts/${post.slug.current}`}>
-          <div className="relative h-48 sm:h-56 w-full overflow-hidden">
+          <div className="relative h-40 sm:h-48 md:h-56 w-full overflow-hidden">
             <Image
               src={imageUrl}
               alt={post.mainImage?.alt || post.title}
               fill
               className="object-cover group-hover:scale-110 transition-transform duration-700"
-              unoptimized // 避免外部图片优化问题
+              loading="lazy"
+              quality={75}
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
               onError={(e) => {
                 console.error('PostCard图片加载失败:', imageUrl);
                 // 图片加载失败时隐藏图片而不是显示另一个随机图片
@@ -86,7 +88,7 @@ export default function PostCard({ post }: PostCardProps) {
         </Link>
       )}
 
-      <div className="p-6 sm:p-8">
+      <div className="p-4 sm:p-6 md:p-8">
         <div className="flex flex-wrap gap-2 mb-4">
           {post.categories?.map((category) => (
             <Link
@@ -99,7 +101,7 @@ export default function PostCard({ post }: PostCardProps) {
           ))}
         </div>
 
-        <h2 className="text-xl sm:text-2xl font-bold mb-3 leading-tight">
+        <h2 className="text-lg sm:text-xl md:text-2xl font-bold mb-3 leading-tight">
           <Link
             href={`/posts/${post.slug.current}`}
             className="text-gray-900 hover:bg-gradient-to-r hover:from-blue-600 hover:to-purple-600 hover:bg-clip-text hover:text-transparent transition-all duration-300"
@@ -109,15 +111,15 @@ export default function PostCard({ post }: PostCardProps) {
         </h2>
 
         {post.excerpt && (
-          <p className="text-gray-600 mb-6 line-clamp-3 leading-relaxed text-sm sm:text-base">
+          <p className="text-gray-600 mb-4 sm:mb-6 line-clamp-2 sm:line-clamp-3 leading-relaxed text-sm sm:text-base">
             {post.excerpt}
           </p>
         )}
 
-        <div className="flex items-center justify-between text-sm text-gray-500">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-sm text-gray-500">
           <div className="flex items-center">
             {post.author?.image ? (
-              <div className="relative w-8 h-8 mr-3">
+              <div className="relative w-6 h-6 sm:w-8 sm:h-8 mr-2 sm:mr-3 flex-shrink-0">
                 <Image
                   src={urlFor(post.author.image).width(32).height(32).url()}
                   alt={post.author.name}
@@ -126,15 +128,15 @@ export default function PostCard({ post }: PostCardProps) {
                 />
               </div>
             ) : (
-              <div className="w-8 h-8 mr-3 bg-gradient-to-r from-blue-400 to-purple-400 rounded-full flex items-center justify-center text-white text-xs font-semibold">
+              <div className="w-6 h-6 sm:w-8 sm:h-8 mr-2 sm:mr-3 bg-gradient-to-r from-blue-400 to-purple-400 rounded-full flex items-center justify-center text-white text-xs font-semibold flex-shrink-0">
                 📝
               </div>
             )}
-            <span className="font-medium">{post.author?.name || '博主'}</span>
+            <span className="font-medium truncate">{post.author?.name || '博主'}</span>
           </div>
 
           {post.publishedAt && (
-            <time dateTime={post.publishedAt} className="bg-gray-50 px-3 py-1 rounded-full text-xs">
+            <time dateTime={post.publishedAt} className="bg-gray-50 px-2 sm:px-3 py-1 rounded-full text-xs flex-shrink-0">
               {format(new Date(post.publishedAt), 'MM月dd日')}
             </time>
           )}
@@ -143,10 +145,10 @@ export default function PostCard({ post }: PostCardProps) {
         {/* 阅读更多按钮 */}
         <Link
           href={`/posts/${post.slug.current}`}
-          className="inline-flex items-center mt-4 text-purple-600 hover:text-purple-800 font-semibold text-sm group"
+          className="inline-flex items-center mt-3 sm:mt-4 text-purple-600 hover:text-purple-800 font-semibold text-sm group"
         >
           阅读文章
-          <svg className="ml-1 w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="ml-1 w-3 h-3 sm:w-4 sm:h-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
           </svg>
         </Link>

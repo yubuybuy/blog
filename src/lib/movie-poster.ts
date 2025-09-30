@@ -198,7 +198,9 @@ export function isMovieContent(title: string, category: string, tags: string[]):
   return hasMovieInTitle || hasMovieCategory || hasMovieTags;
 }
 
-// 主要的图片生成函数 - 改进TMDB搜索策略
+import { getOMDbPoster, getDoubanPoster, searchMoviePoster } from './omdb-poster';
+
+// 主要的图片生成函数 - 多源海报获取
 export async function generateContentImage(
   title: string,
   category: string,
@@ -213,20 +215,54 @@ export async function generateContentImage(
 
   // 检查是否为电影内容
   if (isMovieContent(title, category, tags)) {
-    console.log('✅ 检测到电影内容，尝试获取TMDB海报...');
+    console.log('✅ 检测到电影内容，尝试多源获取海报...');
 
-    const poster = await getMoviePosterEnhanced(title);
+    // 多源海报获取策略
+    const poster = await getMoviePosterMultiSource(title);
     if (poster) {
-      console.log('🎬 成功获取TMDB海报:', poster);
+      console.log('🎬 成功获取电影海报:', poster);
       return poster;
     } else {
-      console.log('❌ TMDB海报获取失败');
+      console.log('❌ 所有海报源都失败');
       return null;
     }
   } else {
-    console.log('ℹ️ 非电影内容，跳过TMDB');
+    console.log('ℹ️ 非电影内容，跳过海报获取');
     return null;
   }
+}
+
+// 多源电影海报获取
+async function getMoviePosterMultiSource(movieTitle: string): Promise<string | null> {
+  console.log('=== 多源海报获取 ===');
+  console.log('电影标题:', movieTitle);
+
+  const sources = [
+    { name: 'TMDB', fn: () => getMoviePosterEnhanced(movieTitle) },
+    { name: 'OMDb', fn: () => getOMDbPoster(movieTitle) },
+    { name: '豆瓣', fn: () => getDoubanPoster(movieTitle) },
+    { name: '图片搜索', fn: () => searchMoviePoster(movieTitle) }
+  ];
+
+  // 依次尝试每个源
+  for (const source of sources) {
+    try {
+      console.log(`🔍 尝试 ${source.name}...`);
+      const result = await source.fn();
+
+      if (result) {
+        console.log(`✅ ${source.name} 成功获取海报:`, result);
+        return result;
+      } else {
+        console.log(`❌ ${source.name} 未找到海报`);
+      }
+    } catch (error) {
+      console.error(`❌ ${source.name} 出错:`, error);
+    }
+  }
+
+  console.log('❌ 所有海报源都失败');
+  return null;
 }
 
 // 增强版电影海报获取 - 多种搜索策略
