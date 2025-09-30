@@ -27,7 +27,7 @@ export async function generateMetadata(): Promise<Metadata> {
       template: `%s - ${siteName}`
     },
     description: description,
-    keywords: ["博客", "技术", "生活", "思考", "前端", "开发"],
+    keywords: ["博客", "技术", "生活", "思考", "前端", "开发", "网盘资源", "分享", "学习笔记", "编程", "web开发", "技术博客"],
     authors: [{ name: "博客作者" }],
     creator: "博客作者",
     publisher: "博客作者",

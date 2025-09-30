@@ -2,10 +2,12 @@ import { PortableText } from '@portabletext/react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { urlFor } from '@/lib/sanity'
-import { getPost, getPosts, getSiteName } from '@/lib/queries'
+import { getPost, getPosts, getSiteName, getSiteSettings } from '@/lib/queries'
 import { format } from 'date-fns'
 import { notFound } from 'next/navigation'
 import MarkdownImage from '@/components/MarkdownImage'
+import JsonLd from '@/components/JsonLd'
+import Breadcrumbs from '@/components/Breadcrumbs'
 
 interface PostPageProps {
   params: Promise<{ slug: string }>
@@ -20,8 +22,11 @@ export async function generateStaticParams() {
 
 export async function generateMetadata({ params }: PostPageProps) {
   const { slug } = await params
-  const post = await getPost(slug)
-  const siteName = await getSiteName()
+  const [post, siteName, siteSettings] = await Promise.all([
+    getPost(slug),
+    getSiteName(),
+    getSiteSettings()
+  ])
 
   if (!post) {
     return {
@@ -29,14 +34,49 @@ export async function generateMetadata({ params }: PostPageProps) {
     }
   }
 
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://www.sswl.top'
+  const imageUrl = post.mainImageUrl ||
+    (post.mainImage ? urlFor(post.mainImage).width(1200).height(630).url() :
+    `${baseUrl}/api/placeholder?text=${encodeURIComponent(post.title.slice(0, 10))}&width=1200&height=630`)
+
   return {
     title: `${post.title} - ${siteName}`,
-    description: post.excerpt || '查看这篇文章的详细内容',
+    description: post.excerpt || `阅读关于"${post.title}"的详细内容，了解更多相关信息和见解。`,
+    keywords: post.categories?.map(cat => cat.title).join(', ') || '',
+    authors: [{ name: post.author?.name || '博主' }],
     openGraph: {
       title: post.title,
-      description: post.excerpt,
-      images: post.mainImage ? [urlFor(post.mainImage).width(1200).height(630).url()] : [],
+      description: post.excerpt || `阅读关于"${post.title}"的详细内容`,
+      images: [{
+        url: imageUrl,
+        width: 1200,
+        height: 630,
+        alt: post.title
+      }],
+      type: 'article',
+      publishedTime: post.publishedAt,
+      modifiedTime: post._updatedAt || post.publishedAt,
+      authors: [post.author?.name || '博主'],
+      section: post.categories?.[0]?.title || '文章',
+      tags: post.categories?.map(cat => cat.title) || []
     },
+    twitter: {
+      card: 'summary_large_image',
+      title: post.title,
+      description: post.excerpt || `阅读关于"${post.title}"的详细内容`,
+      images: [imageUrl],
+      creator: '@yourusername'
+    },
+    alternates: {
+      canonical: `${baseUrl}/posts/${slug}`
+    },
+    robots: {
+      index: true,
+      follow: true,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+      'max-video-preview': -1
+    }
   }
 }
 
@@ -207,14 +247,35 @@ function MarkdownContent({ content }: { content: string }) {
 
 export default async function PostPage({ params }: PostPageProps) {
   const { slug } = await params
-  const post = await getPost(slug)
+  const [post, siteSettings] = await Promise.all([
+    getPost(slug),
+    getSiteSettings()
+  ])
 
   if (!post) {
     notFound()
   }
 
+  // 生成面包屑
+  const breadcrumbs = [
+    { name: '首页', url: '/' },
+    { name: '文章', url: '/posts' },
+    { name: post.title, url: `/posts/${slug}` }
+  ]
+
+  // 如果有分类，添加到面包屑中
+  if (post.categories && post.categories.length > 0) {
+    breadcrumbs.splice(2, 0, {
+      name: post.categories[0].title,
+      url: `/categories/${post.categories[0].slug.current}`
+    })
+  }
+
   return (
-    <article className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <>
+      <JsonLd type="article" post={post} siteSettings={siteSettings} />
+      <article className="max-w-4xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6 md:py-8">
+        <Breadcrumbs items={breadcrumbs} />
       {/* Article Header */}
       <header className="mb-8">
         <div className="flex flex-wrap gap-2 mb-4">
@@ -304,6 +365,24 @@ export default async function PostPage({ params }: PostPageProps) {
           </div>
         </footer>
       )}
+
+      {/* 相关文章推荐 */}
+      {post.categories && post.categories.length > 0 && (
+        <section className="mt-8 sm:mt-12 pt-6 sm:pt-8 border-t border-gray-200">
+          <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-4">
+            相关文章
+          </h3>
+          <div className="text-sm text-gray-600">
+            <Link
+              href={`/categories/${post.categories[0].slug.current}`}
+              className="text-blue-600 hover:text-blue-800 underline"
+            >
+              查看更多{post.categories[0].title}相关文章 →
+            </Link>
+          </div>
+        </section>
+      )}
     </article>
+    </>
   )
 }

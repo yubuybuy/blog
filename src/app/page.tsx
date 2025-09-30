@@ -2,6 +2,7 @@ import PostCard from '@/components/PostCard'
 import { getPosts, getCategories, getSiteSettings } from '@/lib/queries'
 import { Post, Category, SiteSettings } from '@/types'
 import Link from 'next/link'
+import JsonLd from '@/components/JsonLd'
 
 export const revalidate = 0 // 禁用缓存，确保获取最新文章
 
@@ -20,7 +21,9 @@ export default async function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+    <>
+      <JsonLd type="website" siteSettings={settings} />
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
       {/* Hero Section - 现代化设计 */}
       <section className="relative overflow-hidden px-3 sm:px-4 md:px-6 lg:px-8 py-12 sm:py-16 md:py-24">
         <div className="max-w-7xl mx-auto text-center">
@@ -98,5 +101,6 @@ export default async function Home() {
         </section>
       </div>
     </div>
+    </>
   )
 }
