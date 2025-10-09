@@ -12,11 +12,5 @@
       "source": "/desk/(.*)",
       "destination": "/boss-admin"
     }
-  ],
-  "crons": [
-    {
-      "path": "/api/cron/baidu-push",
-      "schedule": "0 2 * * *"
-    }
   ]
 }
