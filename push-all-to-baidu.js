@@ -2,15 +2,22 @@
 import { createClient } from '@sanity/client'
 import fs from 'fs'
 
-// 读取环境变量
-const envLocal = fs.readFileSync('.env.local', 'utf8')
-const envVars = {}
-envLocal.split('\n').forEach(line => {
-  if (line.includes('=') && !line.startsWith('#')) {
-    const [key, value] = line.split('=')
-    envVars[key.trim()] = value.trim()
-  }
-})
+// 读取环境变量（支持 .env.local 文件和系统环境变量）
+let envVars = {}
+
+// 如果是本地环境，读取 .env.local
+if (fs.existsSync('.env.local')) {
+  const envLocal = fs.readFileSync('.env.local', 'utf8')
+  envLocal.split('\n').forEach(line => {
+    if (line.includes('=') && !line.startsWith('#')) {
+      const [key, value] = line.split('=')
+      envVars[key.trim()] = value.trim()
+    }
+  })
+} else {
+  // GitHub Actions 环境，使用系统环境变量
+  envVars = process.env
+}
 
 const client = createClient({
   projectId: envVars.NEXT_PUBLIC_SANITY_PROJECT_ID,
