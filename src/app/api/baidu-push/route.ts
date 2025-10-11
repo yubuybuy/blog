@@ -1,6 +1,15 @@
 import { NextResponse } from 'next/server'
+import { createClient } from '@sanity/client'
 
 export const dynamic = 'force-dynamic'
+
+const client = createClient({
+  projectId: process.env.NEXT_PUBLIC_SANITY_PROJECT_ID!,
+  dataset: process.env.NEXT_PUBLIC_SANITY_DATASET || 'production',
+  token: process.env.SANITY_API_TOKEN,
+  useCdn: false,
+  apiVersion: '2023-05-03',
+})
 
 // 百度主动推送API
 export async function POST(request: Request) {
@@ -51,23 +60,29 @@ export async function POST(request: Request) {
   }
 }
 
-// 获取所有文章URL并推送
+// 获取最新10篇文章并推送
 export async function GET() {
   try {
     const baseUrl = 'https://www.sswl.top' // 固定使用正式域名
 
-    // 获取sitemap中的所有URL
-    const sitemapResponse = await fetch(`${baseUrl}/sitemap.xml`)
-    const sitemapText = await sitemapResponse.text()
+    // 从 Sanity 获取最新10篇文章，按发布时间倒序排列
+    const posts = await client.fetch(`
+      *[_type == "post" && !defined(deleted)] | order(publishedAt desc) [0...10] {
+        slug,
+        title,
+        publishedAt
+      }
+    `)
 
-    // 解析sitemap获取所有URL
-    const urlMatches = sitemapText.match(/<loc>(.*?)<\/loc>/g)
-    let urls = urlMatches
-      ? urlMatches.map(match => match.replace(/<\/?loc>/g, ''))
-      : []
+    console.log(`找到 ${posts.length} 篇最新文章`)
 
-    // 确保所有URL都使用正式域名
-    urls = urls.map(url => url.replace(/https:\/\/[^\/]+/, baseUrl))
+    // 构建URL列表：首页 + 最新10篇文章
+    const urls = [
+      `${baseUrl}/`,
+      ...posts.map((post: any) => `${baseUrl}/posts/${post.slug.current}`)
+    ]
+
+    console.log(`准备推送 ${urls.length} 个URL（首页 + 最新${posts.length}篇文章）`)
 
     if (urls.length === 0) {
       return NextResponse.json(
@@ -76,7 +91,7 @@ export async function GET() {
       )
     }
 
-    // 调用POST方法推送
+    // 推送到百度
     const token = process.env.BAIDU_PUSH_TOKEN
     const site = baseUrl
 
@@ -99,11 +114,14 @@ export async function GET() {
 
     const result = await response.json()
 
+    console.log('百度推送结果:', result)
+
     return NextResponse.json({
       success: true,
       result,
       totalUrls: urls.length,
       pushedUrls: urls,
+      articles: posts.map((p: any) => ({ title: p.title, publishedAt: p.publishedAt }))
     })
   } catch (error: any) {
     console.error('百度推送失败:', error)
