@@ -11,25 +11,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout代码
-        uses: actions/checkout@v3
-
-      - name: 设置 Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '18'
-
-      - name: 安装依赖
-        run: npm install @sanity/client
-
-      - name: 推送到百度
-        env:
-          NEXT_PUBLIC_SANITY_PROJECT_ID: ${{ secrets.NEXT_PUBLIC_SANITY_PROJECT_ID }}
-          NEXT_PUBLIC_SANITY_DATASET: ${{ secrets.NEXT_PUBLIC_SANITY_DATASET }}
-          SANITY_API_TOKEN: ${{ secrets.SANITY_API_TOKEN }}
-          BAIDU_PUSH_TOKEN: ${{ secrets.BAIDU_PUSH_TOKEN }}
-          NEXT_PUBLIC_BASE_URL: ${{ secrets.NEXT_PUBLIC_BASE_URL }}
-        run: node push-all-to-baidu.js
-
-      - name: 推送结果
-        run: echo "百度推送任务完成"
+      - name: 调用百度推送API
+        run: |
+          echo "🚀 开始推送到百度..."
+          response=$(curl -s "https://www.sswl.top/api/baidu-push")
+          echo "📊 推送结果:"
+          echo "$response" | jq '.'
+          echo "✅ 推送完成"
