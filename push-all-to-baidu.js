@@ -28,7 +28,7 @@ const client = createClient({
 })
 
 const token = envVars.BAIDU_PUSH_TOKEN
-const site = envVars.NEXT_PUBLIC_BASE_URL || 'https://www.sswl.top'
+const site = 'https://www.sswl.top' // 固定使用正式域名
 
 async function pushAllArticles() {
   try {

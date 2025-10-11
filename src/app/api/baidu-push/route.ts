@@ -54,7 +54,7 @@ export async function POST(request: Request) {
 // 获取所有文章URL并推送
 export async function GET() {
   try {
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://www.sswl.top'
+    const baseUrl = 'https://www.sswl.top' // 固定使用正式域名
 
     // 获取sitemap中的所有URL
     const sitemapResponse = await fetch(`${baseUrl}/sitemap.xml`)
@@ -62,9 +62,12 @@ export async function GET() {
 
     // 解析sitemap获取所有URL
     const urlMatches = sitemapText.match(/<loc>(.*?)<\/loc>/g)
-    const urls = urlMatches
+    let urls = urlMatches
       ? urlMatches.map(match => match.replace(/<\/?loc>/g, ''))
       : []
+
+    // 确保所有URL都使用正式域名
+    urls = urls.map(url => url.replace(/https:\/\/[^\/]+/, baseUrl))
 
     if (urls.length === 0) {
       return NextResponse.json(
