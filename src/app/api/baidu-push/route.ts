@@ -60,35 +60,70 @@ export async function POST(request: Request) {
   }
 }
 
-// 获取最新10篇文章并推送
+// 智能推送：轮流推送文章，充分利用百度每日10条配额
 export async function GET() {
   try {
     const baseUrl = 'https://www.sswl.top' // 固定使用正式域名
+    const DAILY_QUOTA = 10 // 百度每日推送配额
 
-    // 从 Sanity 获取最新10篇文章，按发布时间倒序排列
-    const posts = await client.fetch(`
-      *[_type == "post" && !defined(deleted)] | order(publishedAt desc) [0...10] {
+    // 1. 优先获取最近7天内发布的新文章
+    const sevenDaysAgo = new Date()
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
+    const recentPosts = await client.fetch(`
+      *[_type == "post" && !defined(deleted) && publishedAt > $sevenDaysAgo] | order(publishedAt desc) {
         slug,
         title,
         publishedAt
       }
-    `)
+    `, { sevenDaysAgo: sevenDaysAgo.toISOString() })
 
-    console.log(`找到 ${posts.length} 篇最新文章`)
+    console.log(`找到 ${recentPosts.length} 篇最近7天内的文章`)
 
-    // 构建URL列表：首页 + 最新10篇文章
-    const urls = [
-      `${baseUrl}/`,
-      ...posts.map((post: any) => `${baseUrl}/posts/${post.slug.current}`)
-    ]
+    let postsToSend = []
 
-    console.log(`准备推送 ${urls.length} 个URL（首页 + 最新${posts.length}篇文章）`)
+    // 如果有新文章，优先推送新文章（最多配额数量）
+    if (recentPosts.length > 0) {
+      postsToSend = recentPosts.slice(0, DAILY_QUOTA)
+      console.log(`推送策略：最近7天有新文章，推送 ${postsToSend.length} 篇`)
+    } else {
+      // 如果没有新文章，使用轮换策略推送旧文章
+      // 获取所有文章
+      const allPosts = await client.fetch(`
+        *[_type == "post" && !defined(deleted)] | order(publishedAt desc) {
+          slug,
+          title,
+          publishedAt
+        }
+      `)
+
+      console.log(`没有新文章，从 ${allPosts.length} 篇文章中轮换推送`)
+
+      // 使用当前日期作为种子，每天推送不同的文章
+      const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000)
+      const offset = (dayOfYear * DAILY_QUOTA) % allPosts.length // 每天轮换
+
+      // 获取配额数量的文章（循环获取）
+      for (let i = 0; i < Math.min(DAILY_QUOTA, allPosts.length); i++) {
+        const index = (offset + i) % allPosts.length
+        postsToSend.push(allPosts[index])
+      }
+
+      console.log(`推送策略：轮换推送，今天是第 ${dayOfYear} 天，偏移量 ${offset}`)
+    }
+
+    // 构建URL列表（确保不超过配额）
+    const urls = postsToSend.slice(0, DAILY_QUOTA).map((post: any) => `${baseUrl}/posts/${post.slug.current}`)
+
+    console.log(`准备推送 ${urls.length} 个URL（配额：${DAILY_QUOTA}条/天）`)
 
     if (urls.length === 0) {
-      return NextResponse.json(
-        { error: '未找到可推送的URL' },
-        { status: 404 }
-      )
+      return NextResponse.json({
+        success: true,
+        message: '没有可推送的文章',
+        totalUrls: 0,
+        pushedUrls: [],
+        articles: []
+      })
     }
 
     // 推送到百度
@@ -121,7 +156,8 @@ export async function GET() {
       result,
       totalUrls: urls.length,
       pushedUrls: urls,
-      articles: posts.map((p: any) => ({ title: p.title, publishedAt: p.publishedAt }))
+      articles: postsToSend.map((p: any) => ({ title: p.title, publishedAt: p.publishedAt })),
+      strategy: recentPosts.length > 0 ? 'new_articles' : 'rotation'
     })
   } catch (error: any) {
     console.error('百度推送失败:', error)
