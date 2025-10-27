@@ -97,11 +97,12 @@ function AdminPasswordProtection({ onSuccess }: { onSuccess: () => void }) {
 
 // 主管理界面
 function AdminDashboard({ onLogout }: { onLogout: () => void }) {
-  const [activeTab, setActiveTab] = useState<'ai' | 'posts' | 'recycle' | 'sanity'>('ai')
+  const [activeTab, setActiveTab] = useState<'ai' | 'posts' | 'recycle' | 'sanity' | 'wechat'>('ai')
 
   const tabs = [
     { id: 'ai' as const, name: '🤖 AI内容生成', icon: '🚀' },
     { id: 'posts' as const, name: '📚 文章管理', icon: '📝' },
+    { id: 'wechat' as const, name: '📱 公众号发布', icon: '💬' },
     { id: 'recycle' as const, name: '🗑️ 回收站管理', icon: '♻️' },
     { id: 'sanity' as const, name: '📝 内容管理', icon: '⚙️' }
   ]
@@ -150,6 +151,15 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
       <div className="max-w-7xl mx-auto">
         {activeTab === 'ai' && <AIGeneratorTab />}
         {activeTab === 'posts' && <PostManagementTab />}
+        {activeTab === 'wechat' && (
+          <div className="p-6">
+            <iframe
+              src="/wechat-publisher"
+              className="w-full h-[calc(100vh-200px)] border-0 rounded-lg shadow-lg"
+              title="公众号内容生成器"
+            />
+          </div>
+        )}
         {activeTab === 'recycle' && <RecycleBinTab />}
         {activeTab === 'sanity' && <SanityStudioTab />}
       </div>

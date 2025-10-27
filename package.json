@@ -8,7 +8,14 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "wechat:test": "node wechat-publisher/test-config.js",
+    "wechat:draft": "node wechat-publisher/sync-to-wechat.js",
+    "wechat:publish": "node wechat-publisher/sync-to-wechat.js --auto-publish",
+    "wechat:publish:batch": "node wechat-publisher/sync-to-wechat.js --auto-publish --limit=3",
+    "wechat:personal": "node wechat-publisher/personal-generator.js",
+    "wechat:personal:batch": "node wechat-publisher/personal-generator.js --limit=3",
+    "wechat:simple": "node wechat-publisher/personal-simple.js"
   },
   "dependencies": {
     "@portabletext/react": "^3.0.15",
@@ -16,6 +23,7 @@
     "@sanity/image-url": "^1.0.2",
     "@sanity/vision": "^3.45.0",
     "date-fns": "^3.6.0",
+    "dotenv": "^17.2.3",
     "next": "15.5.3",
     "next-sanity": "^11.1.1",
     "react": "19.1.0",
