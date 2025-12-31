@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 
 interface ResourceInfo {
   title: string;
@@ -717,6 +717,14 @@ function AIContentGenerator({ onLogout }: { onLogout: () => void }) {
 // 主组件
 export default function AIGeneratorPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
+
+  // 检查 localStorage 中是否已有 token
+  useEffect(() => {
+    const token = localStorage.getItem('admin-token')
+    if (token) {
+      setIsAuthenticated(true)
+    }
+  }, [])
 
   const handleLogin = () => {
     setIsAuthenticated(true)
