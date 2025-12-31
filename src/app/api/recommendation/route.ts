@@ -5,10 +5,14 @@
 import { NextResponse } from 'next/server';
 import { getDailyRecommendation, getStats } from '@/lib/recommendation-engine';
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    // 获取查询参数中的 mode (用于循环展示不同推荐)
+    const { searchParams } = new URL(request.url);
+    const mode = parseInt(searchParams.get('mode') || '0');
+
     const [recommendation, stats] = await Promise.all([
-      getDailyRecommendation(),
+      getDailyRecommendation(mode),
       getStats()
     ]);
 

@@ -55,7 +55,7 @@ function PasswordProtection({ onSuccess }: { onSuccess: () => void }) {
       const data = await response.json();
 
       if (data.success) {
-        localStorage.setItem('ai-token', data.token);
+        localStorage.setItem('admin-token', data.token);
         onSuccess();
       } else {
         setError(data.error || '认证失败')
@@ -724,7 +724,7 @@ export default function AIGeneratorPage() {
 
   const handleLogout = () => {
     setIsAuthenticated(false)
-    localStorage.removeItem('ai-token')
+    localStorage.removeItem('admin-token')
   }
 
   if (!isAuthenticated) {

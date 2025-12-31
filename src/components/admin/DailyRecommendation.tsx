@@ -27,23 +27,55 @@ export default function DailyRecommendation() {
   const [recommendation, setRecommendation] = useState<Recommendation | null>(null);
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [collapsed, setCollapsed] = useState(false);
+  const [mode, setMode] = useState(0); // 推荐模式: 0, 1, 2 循环
 
   useEffect(() => {
     loadRecommendation();
-  }, []);
+  }, [mode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadRecommendation = async () => {
+    setLoading(true);
+    setError(null);
+    console.log(`[推荐系统] 加载推荐 - 模式: ${mode}`);
     try {
-      const response = await fetch('/api/recommendation');
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10秒超时
+
+      const url = `/api/recommendation?mode=${mode}`;
+      console.log(`[推荐系统] 请求 URL: ${url}`);
+
+      const response = await fetch(url, {
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+
       const data = await response.json();
-      setRecommendation(data.recommendation);
-      setStats(data.stats);
-    } catch (error) {
-      console.error('加载推荐失败:', error);
+      console.log(`[推荐系统] 收到响应:`, data);
+
+      if (data.success) {
+        setRecommendation(data.recommendation);
+        setStats(data.stats);
+        console.log(`[推荐系统] 推荐分类: ${data.recommendation.category}`);
+      } else {
+        setError(data.error || '加载推荐失败');
+        console.error(`[推荐系统] 失败:`, data.error);
+      }
+    } catch (error: any) {
+      console.error('[推荐系统] 加载推荐失败:', error);
+      if (error.name === 'AbortError') {
+        setError('请求超时，请检查网络连接');
+      } else {
+        setError('网络错误，请稍后重试');
+      }
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleRefresh = () => {
+    setMode((prevMode) => (prevMode + 1) % 3); // 循环 0 -> 1 -> 2 -> 0
   };
 
   const getPriorityColor = (priority: string) => {
@@ -81,6 +113,28 @@ export default function DailyRecommendation() {
     );
   }
 
+  if (error) {
+    return (
+      <div className="bg-red-50 border-2 border-red-200 rounded-lg shadow-sm p-6 mb-6">
+        <div className="flex items-start justify-between">
+          <div className="flex-1">
+            <h2 className="text-xl font-bold text-red-800 mb-2">
+              ⚠️ 推荐系统加载失败
+            </h2>
+            <p className="text-red-600 mb-4">{error}</p>
+            <button
+              onClick={loadRecommendation}
+              className="inline-flex items-center gap-2 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
+            >
+              <span>🔄</span>
+              重新加载
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (!recommendation) {
     return null;
   }
@@ -100,6 +154,9 @@ export default function DailyRecommendation() {
               </h2>
               {getPriorityBadge(recommendation.priority)}
               {getUrgencyBadge(recommendation.urgency)}
+              <span className="bg-purple-100 text-purple-700 px-2 py-1 rounded text-xs font-medium">
+                模式 {mode + 1}/3
+              </span>
             </div>
             <div className="text-sm text-gray-500">
               {new Date().toLocaleDateString('zh-CN', {
@@ -221,11 +278,12 @@ export default function DailyRecommendation() {
                 快速录入资源
               </a>
               <button
-                onClick={loadRecommendation}
-                className="inline-flex items-center gap-2 bg-gray-200 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-300 transition-colors font-medium"
+                onClick={handleRefresh}
+                disabled={loading}
+                className="inline-flex items-center gap-2 bg-gray-200 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-300 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <span>🔄</span>
-                换一个推荐
+                <span>{loading ? '⏳' : '🔄'}</span>
+                {loading ? '加载中...' : '换一个推荐'}
               </button>
               <button
                 onClick={() => setCollapsed(true)}

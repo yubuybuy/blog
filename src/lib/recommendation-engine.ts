@@ -244,8 +244,9 @@ function generateSources(category: string): string[] {
 
 /**
  * 生成每日推荐
+ * @param mode 推荐模式: 0=最高优先级, 1=次优先级, 2=轮换推荐
  */
-export async function getDailyRecommendation(): Promise<Recommendation> {
+export async function getDailyRecommendation(mode: number = 0): Promise<Recommendation> {
   // 1. 获取分类统计
   const stats = await getCategoryStats();
 
@@ -264,40 +265,83 @@ export async function getDailyRecommendation(): Promise<Recommendation> {
   let urgency: 'urgent' | 'normal' | 'low' = 'normal';
   const reasons: string[] = [];
 
-  // 优先级：严重空缺 > 季节性 > 长期未更新 > 轮换
-  if (emptiest.length > 0 && emptiest[0].count === 0) {
-    // 完全空白的分类，最高优先级
-    recommendedCategory = emptiest[0].title;
-    priority = 'high';
-    urgency = 'urgent';
-    reasons.push(`❗ 该分类目前没有任何文章（严重空白）`);
-  } else if (emptiest.length > 0 && emptiest[0].count < 3) {
-    // 文章很少的分类
-    recommendedCategory = emptiest[0].title;
-    priority = 'high';
-    reasons.push(`⚠️ 该分类仅有${emptiest[0].count}篇文章（严重不足）`);
-  } else if (seasonal && emptiest.some(e => e.title === seasonal.category)) {
-    // 季节性推荐且该分类也缺内容
-    recommendedCategory = seasonal.category;
-    priority = 'high';
-    reasons.push(`📅 ${seasonal.reason}（时效性强）`);
-    reasons.push(`⚠️ 该分类文章较少`);
-  } else if (outdated.length > 0 && outdated[0].daysSinceUpdate > 14) {
-    // 超过2周未更新
-    recommendedCategory = outdated[0].title;
-    priority = 'medium';
-    reasons.push(`⏰ 已连续${outdated[0].daysSinceUpdate}天未更新`);
-  } else if (seasonal) {
-    // 季节性推荐
-    recommendedCategory = seasonal.category;
-    priority = 'medium';
-    reasons.push(`📅 ${seasonal.reason}`);
+  // 根据 mode 选择不同的推荐策略
+  const normalizedMode = mode % 3; // 循环模式: 0, 1, 2
+
+  if (normalizedMode === 0) {
+    // 模式 0: 最高优先级 - 第1个空缺分类
+    if (emptiest.length > 0 && emptiest[0].count === 0) {
+      recommendedCategory = emptiest[0].title;
+      priority = 'high';
+      urgency = 'urgent';
+      reasons.push(`❗ 该分类目前没有任何文章（严重空白）`);
+    } else if (emptiest.length > 0 && emptiest[0].count < 3) {
+      recommendedCategory = emptiest[0].title;
+      priority = 'high';
+      reasons.push(`⚠️ 该分类仅有${emptiest[0].count}篇文章（严重不足）`);
+    } else if (outdated.length > 0 && outdated[0].daysSinceUpdate > 14) {
+      recommendedCategory = outdated[0].title;
+      priority = 'medium';
+      reasons.push(`⏰ 已连续${outdated[0].daysSinceUpdate}天未更新`);
+    } else {
+      recommendedCategory = rotation;
+      priority = 'low';
+      const weekDay = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'][new Date().getDay()];
+      reasons.push(`📆 今天是${weekDay}，轮换推荐该分类`);
+    }
+  } else if (normalizedMode === 1) {
+    // 模式 1: 推荐第2个空缺分类或季节性推荐
+    if (emptiest.length > 1 && emptiest[1].count < 3) {
+      recommendedCategory = emptiest[1].title;
+      priority = 'high';
+      reasons.push(`⚠️ 该分类仅有${emptiest[1].count}篇文章（需要充实）`);
+      reasons.push(`🎯 次优先级推荐`);
+    } else if (seasonal && emptiest.some(e => e.title === seasonal.category)) {
+      recommendedCategory = seasonal.category;
+      priority = 'high';
+      reasons.push(`📅 ${seasonal.reason}（时效性强）`);
+      reasons.push(`⚠️ 该分类文章较少`);
+    } else if (seasonal) {
+      recommendedCategory = seasonal.category;
+      priority = 'medium';
+      reasons.push(`📅 ${seasonal.reason}`);
+    } else if (emptiest.length > 0) {
+      // 如果没有第2个空缺分类，循环回到其他空缺分类
+      const index = Math.min(1, emptiest.length - 1);
+      recommendedCategory = emptiest[index].title;
+      priority = 'medium';
+      reasons.push(`📊 该分类文章数量较少（${emptiest[index].count}篇）`);
+    } else {
+      recommendedCategory = rotation;
+      priority = 'low';
+      const weekDay = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'][new Date().getDay()];
+      reasons.push(`📆 今天是${weekDay}，轮换推荐该分类`);
+    }
   } else {
-    // 按轮换推荐
-    recommendedCategory = rotation;
-    priority = 'low';
-    const weekDay = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'][new Date().getDay()];
-    reasons.push(`📆 今天是${weekDay}，轮换推荐该分类`);
+    // 模式 2: 推荐第3个空缺分类或长期未更新
+    if (emptiest.length > 2 && emptiest[2].count < 5) {
+      recommendedCategory = emptiest[2].title;
+      priority = 'medium';
+      reasons.push(`📊 该分类文章数量较少（${emptiest[2].count}篇）`);
+      reasons.push(`🔄 第三优先级推荐`);
+    } else if (outdated.length > 0) {
+      recommendedCategory = outdated[0].title;
+      priority = 'medium';
+      reasons.push(`⏰ 已连续${outdated[0].daysSinceUpdate}天未更新`);
+      reasons.push(`🔄 建议为该分类添加新内容`);
+    } else if (emptiest.length > 0) {
+      // 循环到其他空缺分类
+      const index = Math.min(2, emptiest.length - 1);
+      recommendedCategory = emptiest[index].title;
+      priority = 'medium';
+      reasons.push(`📊 该分类文章数量：${emptiest[index].count}篇`);
+    } else {
+      recommendedCategory = rotation;
+      priority = 'low';
+      const weekDay = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'][new Date().getDay()];
+      reasons.push(`📆 今天是${weekDay}，轮换推荐该分类`);
+      reasons.push(`✨ 保持内容更新的好习惯`);
+    }
   }
 
   // 添加该分类的当前状态
