@@ -6,6 +6,7 @@ import RecycleBinTab from '@/components/admin/RecycleBinTab'
 import AIGeneratorTab from '@/components/admin/AIGeneratorTab'
 import SanityStudioTab from '@/components/admin/SanityStudioTab'
 import PostManagementTab from '@/components/admin/PostManagementTab'
+import DailyRecommendation from '@/components/admin/DailyRecommendation'
 
 // 密码保护组件
 function AdminPasswordProtection({ onSuccess }: { onSuccess: () => void }) {
@@ -148,14 +149,17 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
       </div>
 
       {/* 内容区域 */}
-      <div className="max-w-7xl mx-auto">
+      <div className="max-w-7xl mx-auto px-6 py-6">
+        {/* 每日资源推荐 - 显示在所有tab上方 */}
+        <DailyRecommendation />
+
         {activeTab === 'ai' && <AIGeneratorTab />}
         {activeTab === 'posts' && <PostManagementTab />}
         {activeTab === 'wechat' && (
-          <div className="p-6">
+          <div>
             <iframe
               src="/wechat-publisher"
-              className="w-full h-[calc(100vh-200px)] border-0 rounded-lg shadow-lg"
+              className="w-full h-[calc(100vh-300px)] border-0 rounded-lg shadow-lg"
               title="公众号内容生成器"
             />
           </div>
