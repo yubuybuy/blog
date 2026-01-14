@@ -13,6 +13,8 @@ function AdminPasswordProtection({ onSuccess }: { onSuccess: () => void }) {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const [attemptsLeft, setAttemptsLeft] = useState<number | null>(null)
+  const [lockoutTime, setLockoutTime] = useState<number | null>(null)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -26,7 +28,7 @@ function AdminPasswordProtection({ onSuccess }: { onSuccess: () => void }) {
     setError('')
 
     try {
-      // 使用相同的认证API
+      // 使用安全的认证API
       const response = await fetch('/api/ai-auth', {
         method: 'POST',
         headers: {
@@ -38,10 +40,26 @@ function AdminPasswordProtection({ onSuccess }: { onSuccess: () => void }) {
       const data = await response.json();
 
       if (data.success) {
+        // 存储 JWT Token
         localStorage.setItem('admin-token', data.token);
+
+        // 显示警告信息（如果使用临时模式）
+        if (data.warning) {
+          console.warn('⚠️', data.warning);
+        }
+
         onSuccess();
       } else {
-        setError(data.error || '认证失败')
+        // 处理不同的错误情况
+        if (response.status === 429) {
+          // 速率限制
+          setError(data.error)
+          setLockoutTime(data.lockedUntil)
+        } else {
+          // 密码错误
+          setError(data.error || '认证失败')
+          setAttemptsLeft(data.attemptsLeft ?? null)
+        }
         setPassword('')
       }
     } catch (error) {
@@ -74,7 +92,19 @@ function AdminPasswordProtection({ onSuccess }: { onSuccess: () => void }) {
           </div>
 
           {error && (
-            <div className="text-red-600 text-sm text-center bg-red-50 p-2 rounded">{error}</div>
+            <div className="text-red-600 text-sm text-center bg-red-50 p-3 rounded">
+              <div className="font-semibold">{error}</div>
+              {attemptsLeft !== null && attemptsLeft > 0 && (
+                <div className="mt-1 text-xs">
+                  剩余尝试次数: {attemptsLeft}/5
+                </div>
+              )}
+              {lockoutTime !== null && (
+                <div className="mt-1 text-xs">
+                  请等待 {lockoutTime} 秒后再试
+                </div>
+              )}
+            </div>
           )}
 
           <button

@@ -33,6 +33,9 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 
+# local development config (passwords and secrets)
+src/lib/local-config.ts
+
 # vercel
 .vercel
 
