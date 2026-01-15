@@ -49,7 +49,7 @@ export default function JsonLd({ post, siteSettings, type, breadcrumbs }: JsonLd
           description: post.excerpt || post.title,
           image: post.mainImageUrl || (post.mainImage ? `${baseUrl}/api/placeholder?text=${encodeURIComponent(post.title.slice(0, 10))}&width=1200&height=630` : undefined),
           datePublished: post.publishedAt,
-          dateModified: post._updatedAt || post.publishedAt,
+          dateModified: post.publishedAt,
           author: {
             '@type': 'Person',
             name: post.author?.name || '博主',
