@@ -53,7 +53,7 @@ function SearchResults() {
           搜索结果
         </h2>
         <p className="text-gray-600">
-          为 "{query}" 找到 {posts.length} 篇文章
+          为 &ldquo;{query}&rdquo; 找到 {posts.length} 篇文章
         </p>
       </div>
 

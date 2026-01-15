@@ -341,7 +341,8 @@ export default async function PostPage({ params }: PostPageProps) {
           <MarkdownContent content={post.markdownContent} />
         ) : post.body ? (
           // 降级到原有的PortableText
-          <PortableText value={post.body} components={portableTextComponents as any} />
+          {/* @ts-expect-error - PortableText 类型兼容性问题 */}
+          <PortableText value={post.body} components={portableTextComponents} />
         ) : (
           <p>内容加载中...</p>
         )}

@@ -464,7 +464,7 @@ export default function ResourceManager() {
           {filteredResources.length === 0 && (
             <div className="text-center py-12 text-gray-500">
               <p>暂无资源</p>
-              <p className="text-sm mt-2">点击上方"添加资源"按钮开始添加</p>
+              <p className="text-sm mt-2">点击上方&ldquo;添加资源&rdquo;按钮开始添加</p>
             </div>
           )}
         </div>

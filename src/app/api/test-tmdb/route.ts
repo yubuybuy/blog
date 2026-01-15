@@ -21,7 +21,19 @@ function extractYear(title: string): string | null {
 }
 
 // 直接测试TMDB API
-async function testTMDBSearch(query: string, year?: string): Promise<any> {
+async function testTMDBSearch(query: string, year?: string): Promise<{
+  query: string;
+  year?: string;
+  url: string;
+  total_results: number;
+  results: Array<{
+    title: string;
+    original_title: string;
+    release_date: string;
+    poster_path: string;
+  }>;
+  error?: string;
+}> {
   const apiKey = process.env.TMDB_API_KEY;
 
   try {
@@ -38,7 +50,7 @@ async function testTMDBSearch(query: string, year?: string): Promise<any> {
       year,
       url: searchUrl.replace(apiKey!, 'API_KEY_HIDDEN'),
       total_results: data.total_results,
-      results: data.results.slice(0, 3).map((movie: any) => ({
+      results: data.results.slice(0, 3).map((movie: { title: string; original_title: string; release_date: string; poster_path: string }) => ({
         title: movie.title,
         original_title: movie.original_title,
         release_date: movie.release_date,
@@ -95,7 +107,7 @@ export async function GET(request: NextRequest) {
             lang: test.lang,
             url: searchUrl.replace(apiKey!, 'API_KEY_HIDDEN'),
             total_results: data.total_results,
-            results: data.results.slice(0, 3).map((movie: any) => ({
+            results: data.results.slice(0, 3).map((movie: { title: string; original_title: string; release_date: string; poster_path: string }) => ({
               title: movie.title,
               original_title: movie.original_title,
               release_date: movie.release_date,
