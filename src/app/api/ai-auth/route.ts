@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 从环境变量读取哈希后的密码
-    let hashedPassword = process.env.BOSS_PASSWORD_HASH;
+    const hashedPassword = process.env.BOSS_PASSWORD_HASH;
 
     if (!hashedPassword) {
       console.error('❌ 环境变量 BOSS_PASSWORD_HASH 未设置');
