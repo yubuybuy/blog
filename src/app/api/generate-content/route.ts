@@ -235,7 +235,7 @@ async function generateWithCohere(resourceInfo: ResourceInfo): Promise<Generated
     }
 
     // 尝试从markdown代码块中提取JSON
-    const codeBlockMatch = generatedText.match(/```json\s*([\s\S]*?)\s*```/);
+    let codeBlockMatch = generatedText.match(/```json\s*([\s\S]*?)\s*```/);
     if (!codeBlockMatch) {
       // 如果没有完整的代码块，尝试匹配不完整的
       codeBlockMatch = generatedText.match(/```json\s*([\s\S]*?)$/);
