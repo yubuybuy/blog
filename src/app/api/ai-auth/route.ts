@@ -54,17 +54,6 @@ export async function POST(request: NextRequest) {
     // 从环境变量读取哈希后的密码
     let hashedPassword = process.env.BOSS_PASSWORD_HASH;
 
-    // 如果环境变量未设置，尝试从本地配置文件读取（仅开发环境）
-    if (!hashedPassword && process.env.NODE_ENV === 'development') {
-      try {
-        const localConfig = await import('@/lib/local-config');
-        hashedPassword = localConfig.LOCAL_PASSWORD_HASH;
-        console.log('📝 使用本地配置文件中的密码哈希');
-      } catch {
-        // local-config.ts 不存在，继续使用兼容模式
-      }
-    }
-
     if (!hashedPassword) {
       console.error('❌ 环境变量 BOSS_PASSWORD_HASH 未设置');
       console.error('💡 请运行: node scripts/generate-password-hash.js 来生成密码哈希');
