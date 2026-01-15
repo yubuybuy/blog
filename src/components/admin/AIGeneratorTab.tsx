@@ -294,7 +294,7 @@ export default function AIGeneratorTab() {
     setBatchResources(prev => prev.filter(r => r.id !== id))
   }
 
-  const updateBatchResource = (id: string, field: string, value: string) => {
+  const updateBatchResource = (id: string, field: string, value: string | string[]) => {
     setBatchResources(prev => prev.map(r =>
       r.id === id ? { ...r, [field]: value } : r
     ))
