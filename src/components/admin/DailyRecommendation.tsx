@@ -62,9 +62,9 @@ export default function DailyRecommendation() {
         setError(data.error || '加载推荐失败');
         console.error(`[推荐系统] 失败:`, data.error);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('[推荐系统] 加载推荐失败:', error);
-      if (error.name === 'AbortError') {
+      if (error instanceof Error && error.name === 'AbortError') {
         setError('请求超时，请检查网络连接');
       } else {
         setError('网络错误，请稍后重试');

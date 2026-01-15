@@ -186,7 +186,7 @@ export default function PostManagementTab() {
         </div>
 
         <div className="mt-4 text-sm text-gray-600 bg-yellow-50 p-3 rounded-lg">
-          ⚠️ <strong>注意：</strong>删除的文章将移动到回收站，可以在"回收站管理"标签页中恢复。
+          ⚠️ <strong>注意：</strong>删除的文章将移动到回收站，可以在&ldquo;回收站管理&rdquo;标签页中恢复。
         </div>
       </div>
 
@@ -295,10 +295,10 @@ export default function PostManagementTab() {
       <div className="mt-6 bg-blue-50 rounded-lg p-4">
         <h4 className="font-semibold text-blue-800 mb-2">💡 使用说明</h4>
         <ul className="text-sm text-blue-700 space-y-1">
-          <li>• <strong>删除文章</strong>：点击单个文章的"删除"按钮，或选中多篇文章批量删除</li>
-          <li>• <strong>预览文章</strong>：点击"预览"按钮在新标签页中查看文章</li>
+          <li>• <strong>删除文章</strong>：点击单个文章的&ldquo;删除&rdquo;按钮，或选中多篇文章批量删除</li>
+          <li>• <strong>预览文章</strong>：点击&ldquo;预览&rdquo;按钮在新标签页中查看文章</li>
           <li>• <strong>搜索功能</strong>：输入关键词快速找到目标文章</li>
-          <li>• <strong>安全删除</strong>：删除的文章会移动到回收站，在"回收站管理"中可以恢复</li>
+          <li>• <strong>安全删除</strong>：删除的文章会移动到回收站，在&ldquo;回收站管理&rdquo;中可以恢复</li>
         </ul>
       </div>
     </div>
