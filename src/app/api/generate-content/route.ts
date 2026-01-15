@@ -500,7 +500,8 @@ export async function POST(request: NextRequest) {
       category: resource.category?.trim().slice(0, 20) || '其他',
       tags: Array.isArray(resource.tags) ? resource.tags.slice(0, 10) : [],
       description: resource.description?.trim().slice(0, 500) || '',
-      downloadLink: resource.downloadLink?.trim().slice(0, 200) || ''
+      downloadLink: resource.downloadLink?.trim().slice(0, 200) || '',
+      files: Array.isArray(resource.files) ? resource.files.slice(0, 20) : []
     };
 
     console.log('✅ 安全检查通过，开始生成内容:', cleanResource.title);
