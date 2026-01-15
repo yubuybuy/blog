@@ -188,7 +188,7 @@ export default function AIGeneratorTab() {
             downloadLink: values[3] || '',
             files: [],
             tags: values[4] ? values[4].split('|') : [],
-            status: 'pending'
+            status: 'pending' as const
           }
         }).filter(r => r.title)
 
