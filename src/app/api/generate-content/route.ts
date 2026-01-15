@@ -566,7 +566,7 @@ export async function POST(request: NextRequest) {
 
     // 记录可疑活动
     const forwarded = request.headers.get('x-forwarded-for');
-    const clientIp = forwarded?.split(',')[0] || request.ip || 'unknown';
+    const clientIp = forwarded?.split(',')[0] || request.headers.get('x-real-ip') || 'unknown';
     console.error('错误发生 - IP:', clientIp, 'Error:', error);
 
     return NextResponse.json({
