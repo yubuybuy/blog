@@ -61,6 +61,9 @@ async function testTMDBSearch(query: string, year?: string): Promise<{
     return {
       query,
       year,
+      url: '',
+      total_results: 0,
+      results: [],
       error: error instanceof Error ? error.message : '未知错误'
     };
   }
