@@ -324,8 +324,10 @@ export const POST_PROCESSING_RULES = {
   ]
 };
 
-export default {
+const generationConfig = {
   CURRENT_CONFIG,
   PROMPT_TEMPLATES,
   POST_PROCESSING_RULES
 };
+
+export default generationConfig;

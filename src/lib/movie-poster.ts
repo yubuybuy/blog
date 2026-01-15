@@ -205,7 +205,7 @@ export async function generateContentImage(
   title: string,
   category: string,
   tags: string[] = [],
-  imagePrompt: string = ''
+  _imagePrompt: string = '' // 保留用于未来 AI 图片生成功能
 ): Promise<string | null> {
 
   console.log('=== 图片生成开始 ===');
@@ -420,7 +420,7 @@ async function searchTMDBMovie(query: string, year?: string): Promise<string | n
 }
 
 // 选择最佳匹配的电影
-function selectBestMatch(results: any[], query: string, year?: string): any {
+function selectBestMatch(results: MovieSearchResult[], query: string, year?: string): MovieSearchResult | null {
   if (!results.length) return null;
 
   // 如果有年份，优先选择年份匹配的
@@ -442,26 +442,27 @@ function selectBestMatch(results: any[], query: string, year?: string): any {
   return results[0];
 }
 
-// 通用内容图片生成 - 使用可靠图片源
-function getGenericImage(category: string, imagePrompt: string): string {
-  // 使用分类主题的稳定图片
-  const categoryMap: { [key: string]: number } = {
-    '软件': 100,
-    '游戏': 200,
-    '音乐': 300,
-    '学习': 400,
-    '资源': 500,
-    '工具': 600,
-    '电影': 700,
-    '影视': 800
-  };
+// 通用内容图片生成 - 使用可靠图片源（暂未使用，保留用于未来功能）
+// function getGenericImage(category: string, imagePrompt: string): string {
+//   // 使用分类主题的稳定图片
+//   const categoryMap: { [key: string]: number } = {
+//     '软件': 100,
+//     '游戏': 200,
+//     '音乐': 300,
+//     '学习': 400,
+//     '资源': 500,
+//     '工具': 600,
+//     '电影': 700,
+//     '影视': 800
+//   };
+//
+//   const baseId = categoryMap[category] || 900;
+//   const stableId = baseId + Math.abs(hashCode(imagePrompt)) % 50;
+//
+//   // 使用picsum.photos提供稳定的图片
+//   return `https://picsum.photos/800/400?random=${stableId}`;
+// }
 
-  const baseId = categoryMap[category] || 900;
-  const stableId = baseId + Math.abs(hashCode(imagePrompt)) % 50;
-
-  // 使用picsum.photos提供稳定的图片
-  return `https://picsum.photos/800/400?random=${stableId}`;
-}
 
 // 简单的字符串哈希函数
 function hashCode(str: string): number {

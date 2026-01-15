@@ -13,6 +13,14 @@ const client = createClient({
   useCdn: false
 });
 
+// Sanity 分类查询结果类型
+interface SanityCategoryResult {
+  title: string;
+  slug: string;
+  count: number;
+  lastUpdate: string | null;
+}
+
 // 分类轮换表（周一到周日）
 const ROTATION_MAP: { [key: number]: string } = {
   1: '电影',      // 周一
@@ -76,7 +84,7 @@ async function getCategoryStats(): Promise<CategoryStats[]> {
       }
     `);
 
-    return categories.map((cat: any) => {
+    return categories.map((cat: SanityCategoryResult) => {
       const lastUpdate = cat.lastUpdate ? new Date(cat.lastUpdate) : null;
       const daysSinceUpdate = lastUpdate
         ? Math.floor((Date.now() - lastUpdate.getTime()) / (1000 * 60 * 60 * 24))

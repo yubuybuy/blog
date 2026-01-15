@@ -11,8 +11,19 @@ const sanityClient = createClient({
   token: process.env.SANITY_API_TOKEN?.trim()
 });
 
+// Sanity 图片类型定义
+interface SanityImageAsset {
+  _type: 'image';
+  asset: {
+    _type: 'reference';
+    _ref: string;
+  };
+  alt: string;
+  customUrl?: string;
+}
+
 // 从URL下载图片并上传到Sanity
-export async function uploadImageToSanity(imageUrl: string, filename: string): Promise<any | null> {
+export async function uploadImageToSanity(imageUrl: string, filename: string): Promise<SanityImageAsset | null> {
   try {
     console.log('📥 开始下载图片:', imageUrl);
 
@@ -52,7 +63,7 @@ export async function uploadImageToSanity(imageUrl: string, filename: string): P
 }
 
 // 处理电影海报：优先上传到Sanity，失败时使用URL
-export async function processMoviePoster(imageUrl: string, movieTitle: string): Promise<any> {
+export async function processMoviePoster(imageUrl: string, movieTitle: string): Promise<SanityImageAsset | null> {
   if (!imageUrl) {
     return null;
   }
