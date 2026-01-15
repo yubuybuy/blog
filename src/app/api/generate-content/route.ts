@@ -456,7 +456,7 @@ export async function POST(request: NextRequest) {
   try {
     // 获取客户端IP
     const forwarded = request.headers.get('x-forwarded-for');
-    const clientIp = forwarded?.split(',')[0] || request.ip || 'unknown';
+    const clientIp = forwarded?.split(',')[0] || request.headers.get('x-real-ip') || 'unknown';
 
     console.log('🔐 AI生成请求 - IP:', clientIp);
 
