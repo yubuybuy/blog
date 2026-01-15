@@ -58,35 +58,7 @@ export default defineConfig({
 
   // 强制启用所有操作，包括删除
   document: {
-    actions: (prev, context) => {
-      return prev.map(action => {
-        // 确保删除操作总是可用
-        if (action.action === 'delete') {
-          return {
-            ...action,
-            disabled: false,
-            title: '🗑️ 删除',
-            tone: 'critical'
-          }
-        }
-        // 确保发布/取消发布操作可用
-        if (action.action === 'publish') {
-          return {
-            ...action,
-            disabled: false,
-            title: '✅ 发布'
-          }
-        }
-        if (action.action === 'unpublish') {
-          return {
-            ...action,
-            disabled: false,
-            title: '📝 取消发布'
-          }
-        }
-        return action
-      })
-    }
+    actions: (prev) => prev
   },
 
   // 开发模式设置
