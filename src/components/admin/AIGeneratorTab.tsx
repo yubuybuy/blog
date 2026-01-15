@@ -194,7 +194,7 @@ export default function AIGeneratorTab() {
 
         setBatchResources(resources)
         alert(`成功导入 ${resources.length} 个资源`)
-      } catch (error) {
+      } catch {
         alert('CSV文件格式错误，请检查格式')
       }
     }
@@ -294,7 +294,7 @@ export default function AIGeneratorTab() {
     setBatchResources(prev => prev.filter(r => r.id !== id))
   }
 
-  const updateBatchResource = (id: string, field: string, value: any) => {
+  const updateBatchResource = (id: string, field: string, value: string) => {
     setBatchResources(prev => prev.map(r =>
       r.id === id ? { ...r, [field]: value } : r
     ))
@@ -344,7 +344,7 @@ export default function AIGeneratorTab() {
             <label className="block text-xs font-medium text-gray-700 mb-1">内容模板</label>
             <select
               value={contentTemplate}
-              onChange={(e) => setContentTemplate(e.target.value as any)}
+              onChange={(e) => setContentTemplate(e.target.value)}
               className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
             >
               <option value="movieReview">🎬 影评风格</option>

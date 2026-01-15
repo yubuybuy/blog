@@ -257,10 +257,10 @@ export default function WeChatPublisherPage() {
                     📋 使用步骤
                   </h3>
                   <ol className="list-decimal list-inside space-y-2 text-sm text-yellow-800">
-                    <li>点击上方"一键复制文章内容"按钮</li>
+                    <li>点击上方&ldquo;一键复制文章内容&rdquo;按钮</li>
                     <li>打开公众号后台: <a href="https://mp.weixin.qq.com/" target="_blank" rel="noopener noreferrer" className="underline">https://mp.weixin.qq.com/</a></li>
                     <li>新建图文消息,在编辑器中按 Ctrl+V 粘贴</li>
-                    <li>复制"阅读原文链接",设置到公众号的原文链接</li>
+                    <li>复制&ldquo;阅读原文链接&rdquo;,设置到公众号的原文链接</li>
                     <li>如果有封面图,复制封面图链接并下载设置</li>
                     <li>预览检查,然后发布!</li>
                   </ol>

@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
         const localConfig = await import('@/lib/local-config');
         hashedPassword = localConfig.LOCAL_PASSWORD_HASH;
         console.log('📝 使用本地配置文件中的密码哈希');
-      } catch (e) {
+      } catch {
         // local-config.ts 不存在，继续使用兼容模式
       }
     }
