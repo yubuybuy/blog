@@ -1,6 +1,7 @@
-// 回收站功能 API
+// 回收站功能 API - 受 JWT 认证保护
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@sanity/client';
+import { authenticateRequest } from '@/lib/auth';
 
 const sanityClient = createClient({
   projectId: process.env.NEXT_PUBLIC_SANITY_PROJECT_ID!,
@@ -11,7 +12,16 @@ const sanityClient = createClient({
 });
 
 // 获取回收站内容
-export async function GET() {
+export async function GET(request: NextRequest) {
+  // 🔒 验证 JWT 认证
+  const auth = authenticateRequest(request);
+  if (!auth.authenticated) {
+    return NextResponse.json(
+      { success: false, error: auth.error },
+      { status: 401 }
+    );
+  }
+
   try {
     const recycleBinItems = await sanityClient.fetch(`
       *[_type == "post" && deleted == true] | order(_updatedAt desc) {
@@ -40,6 +50,15 @@ export async function GET() {
 
 // 软删除文章（移动到回收站）
 export async function POST(request: NextRequest) {
+  // 🔒 验证 JWT 认证
+  const auth = authenticateRequest(request);
+  if (!auth.authenticated) {
+    return NextResponse.json(
+      { success: false, error: auth.error },
+      { status: 401 }
+    );
+  }
+
   try {
     const { postId, action } = await request.json();
 
@@ -96,7 +115,16 @@ export async function POST(request: NextRequest) {
 }
 
 // 清空回收站
-export async function DELETE() {
+export async function DELETE(request: NextRequest) {
+  // 🔒 验证 JWT 认证
+  const auth = authenticateRequest(request);
+  if (!auth.authenticated) {
+    return NextResponse.json(
+      { success: false, error: auth.error },
+      { status: 401 }
+    );
+  }
+
   try {
     // 获取所有已删除的文章
     const deletedPosts = await sanityClient.fetch(`*[_type == "post" && deleted == true] {_id}`);

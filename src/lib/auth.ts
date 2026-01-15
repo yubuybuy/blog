@@ -167,3 +167,43 @@ export function getClientIdentifier(request: Request): string {
   // 组合 IP 和 User-Agent 的哈希作为标识符
   return `${ip}:${userAgent.substring(0, 50)}`;
 }
+
+/**
+ * 验证 API 请求的 JWT 认证
+ * @param request Next.js 请求对象
+ * @returns { authenticated: boolean, user?: any, error?: string }
+ */
+export function authenticateRequest(request: Request): {
+  authenticated: boolean;
+  user?: { userId: string; username: string };
+  error?: string;
+} {
+  try {
+    // 从 Authorization 头获取 token
+    const authHeader = request.headers.get('authorization');
+
+    if (!authHeader) {
+      return { authenticated: false, error: '缺少认证令牌' };
+    }
+
+    // 检查格式是否为 "Bearer <token>"
+    const parts = authHeader.split(' ');
+    if (parts.length !== 2 || parts[0] !== 'Bearer') {
+      return { authenticated: false, error: '认证令牌格式错误' };
+    }
+
+    const token = parts[1];
+
+    // 验证 token
+    const payload = verifyToken(token);
+
+    if (!payload) {
+      return { authenticated: false, error: '令牌无效或已过期' };
+    }
+
+    return { authenticated: true, user: payload };
+  } catch (error) {
+    console.error('认证错误:', error);
+    return { authenticated: false, error: '认证失败' };
+  }
+}

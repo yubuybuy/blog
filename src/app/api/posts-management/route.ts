@@ -1,6 +1,7 @@
-// 文章管理API - 获取文章列表用于管理界面
+// 文章管理API - 获取文章列表用于管理界面 - 受 JWT 认证保护
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@sanity/client';
+import { authenticateRequest } from '@/lib/auth';
 
 const sanityClient = createClient({
   projectId: process.env.NEXT_PUBLIC_SANITY_PROJECT_ID!,
@@ -11,7 +12,16 @@ const sanityClient = createClient({
 });
 
 // 获取所有文章（包括管理所需的详细信息）
-export async function GET() {
+export async function GET(request: NextRequest) {
+  // 🔒 验证 JWT 认证
+  const auth = authenticateRequest(request);
+  if (!auth.authenticated) {
+    return NextResponse.json(
+      { success: false, error: auth.error },
+      { status: 401 }
+    );
+  }
+
   try {
     const posts = await sanityClient.fetch(`
       *[_type == "post" && !defined(deleted)] | order(publishedAt desc) {
@@ -43,6 +53,15 @@ export async function GET() {
 
 // 获取文章统计信息
 export async function POST(request: NextRequest) {
+  // 🔒 验证 JWT 认证
+  const auth = authenticateRequest(request);
+  if (!auth.authenticated) {
+    return NextResponse.json(
+      { success: false, error: auth.error },
+      { status: 401 }
+    );
+  }
+
   try {
     const { action } = await request.json();
 

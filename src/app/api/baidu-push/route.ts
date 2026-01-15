@@ -1,5 +1,6 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@sanity/client'
+import { authenticateRequest } from '@/lib/auth'
 
 export const dynamic = 'force-dynamic'
 
@@ -11,8 +12,17 @@ const client = createClient({
   apiVersion: '2023-05-03',
 })
 
-// 百度主动推送API
-export async function POST(request: Request) {
+// 百度主动推送API - 受 JWT 认证保护
+export async function POST(request: NextRequest) {
+  // 🔒 验证 JWT 认证
+  const auth = authenticateRequest(request);
+  if (!auth.authenticated) {
+    return NextResponse.json(
+      { success: false, error: auth.error },
+      { status: 401 }
+    );
+  }
+
   try {
     const { urls } = await request.json()
 
@@ -61,7 +71,21 @@ export async function POST(request: Request) {
 }
 
 // 智能推送：轮流推送文章，充分利用百度每日10条配额
-export async function GET() {
+// 注意：此方法通过 Vercel Cron 自动调用，不需要 JWT 认证
+// 但为了防止滥用，建议在 Vercel Cron 中配置 secret
+export async function GET(request: NextRequest) {
+  // 可选：验证 Vercel Cron Secret（在 vercel.json 中配置）
+  const cronSecret = request.headers.get('authorization');
+  const expectedSecret = process.env.CRON_SECRET;
+
+  if (expectedSecret && cronSecret !== `Bearer ${expectedSecret}`) {
+    console.warn('⚠️ Cron 任务未授权访问尝试');
+    return NextResponse.json(
+      { error: '未授权访问' },
+      { status: 401 }
+    );
+  }
+
   try {
     const baseUrl = 'https://www.sswl.top' // 固定使用正式域名
     const DAILY_QUOTA = 10 // 百度每日推送配额

@@ -10,12 +10,9 @@ const nextConfig: NextConfig = {
       'image.tmdb.org'
     ],
   },
-  typescript: {
-    ignoreBuildErrors: true,
-  },
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
+  // 移除了 typescript.ignoreBuildErrors 和 eslint.ignoreDuringBuilds
+  // 以确保类型安全和代码质量
+
   // 修复Admin后台刷新404问题
   async rewrites() {
     return [
