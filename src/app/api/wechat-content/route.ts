@@ -22,15 +22,22 @@ class ArticleConverter {
     this.siteUrl = siteUrl;
   }
 
-  convertToWeChatArticle(article: any) {
+  convertToWeChatArticle(article: {
+    title: string;
+    excerpt?: string;
+    content?: string;
+    mainImage?: string;
+    slug: string;
+    author?: { name: string };
+  }) {
     const { title, excerpt, content, mainImage, slug } = article;
     const articleUrl = `${this.siteUrl}/posts/${slug}`;
-    const convertedContent = this.convertContent(content, articleUrl);
+    const convertedContent = this.convertContent(content || '', articleUrl);
 
     return {
       title: this.optimizeTitle(title),
       author: article.author?.name || 'AI小白',
-      excerpt: this.optimizeExcerpt(excerpt, articleUrl),
+      excerpt: this.optimizeExcerpt(excerpt || '', articleUrl),
       content: convertedContent,
       articleUrl,
       mainImage: mainImage || '',
@@ -182,10 +189,22 @@ export async function GET(request: Request) {
       process.env.NEXT_PUBLIC_BASE_URL || 'https://www.sswl.top'
     );
 
-    const wechatArticles = articles.map((article: any) => {
-      const slug = article.slug?.current || article.slug;
+    const wechatArticles = articles.map((article: {
+      slug?: { current: string } | string;
+      title: string;
+      excerpt?: string;
+      content?: string;
+      mainImage?: string;
+      author?: { name: string };
+      [key: string]: unknown;
+    }) => {
+      const slug = typeof article.slug === 'object' && article.slug?.current ? article.slug.current : String(article.slug || '');
       return converter.convertToWeChatArticle({
-        ...article,
+        title: article.title,
+        excerpt: article.excerpt,
+        content: article.content,
+        mainImage: article.mainImage,
+        author: article.author,
         slug
       });
     });

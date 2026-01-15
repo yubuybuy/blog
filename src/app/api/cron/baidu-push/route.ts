@@ -57,8 +57,8 @@ export async function GET(request: Request) {
       `${site}/posts`,
       `${site}/categories`,
       `${site}/search`,
-      ...posts.map((post: any) => `${site}/posts/${post.slug.current}`),
-      ...categories.map((cat: any) => `${site}/categories/${cat.slug.current}`)
+      ...posts.map((post: { slug: { current: string } }) => `${site}/posts/${post.slug.current}`),
+      ...categories.map((cat: { slug: { current: string } }) => `${site}/categories/${cat.slug.current}`)
     ]
 
     console.log(`准备推送 ${urls.length} 个URL`)
@@ -85,13 +85,13 @@ export async function GET(request: Request) {
       result,
     })
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('百度定时推送失败:', error)
     return NextResponse.json(
       {
         success: false,
         error: '推送失败',
-        details: error.message,
+        details: error instanceof Error ? error.message : String(error),
         timestamp: new Date().toISOString(),
       },
       { status: 500 }

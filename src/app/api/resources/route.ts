@@ -23,7 +23,7 @@ function readResources() {
 }
 
 // 写入资源
-function writeResources(resources: any[]) {
+function writeResources(resources: Array<Record<string, unknown>>) {
   fs.writeFileSync(RESOURCES_FILE, JSON.stringify(resources, null, 2));
 }
 
@@ -55,7 +55,7 @@ export async function PATCH(request: NextRequest) {
   try {
     const { id, ...updates } = await request.json();
     const resources = readResources();
-    const index = resources.findIndex((r: any) => r.id === id);
+    const index = resources.findIndex((r: Record<string, unknown>) => r.id === id);
 
     if (index === -1) {
       return NextResponse.json({ error: '资源不存在' }, { status: 404 });
@@ -80,7 +80,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     const resources = readResources();
-    const filtered = resources.filter((r: any) => r.id !== id);
+    const filtered = resources.filter((r: Record<string, unknown>) => r.id !== id);
     writeResources(filtered);
     return NextResponse.json({ success: true });
   } catch (error) {

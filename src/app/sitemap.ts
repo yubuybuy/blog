@@ -39,16 +39,17 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   // Post pages - 按发布时间排序，最新的优先级更高
   const postPages = posts
-    .sort((a: any, b: any) => new Date(b.publishedAt || b._updatedAt).getTime() - new Date(a.publishedAt || a._updatedAt).getTime())
-    .map((post: any, index: number) => ({
+    .sort((a: { publishedAt?: string; _updatedAt?: string }, b: { publishedAt?: string; _updatedAt?: string }) =>
+      new Date(b.publishedAt || b._updatedAt || 0).getTime() - new Date(a.publishedAt || a._updatedAt || 0).getTime())
+    .map((post: { slug: { current: string }; publishedAt?: string; _updatedAt?: string }, index: number) => ({
       url: `${baseUrl}/posts/${post.slug.current}`,
-      lastModified: new Date(post._updatedAt || post.publishedAt),
+      lastModified: new Date(post._updatedAt || post.publishedAt || new Date()),
       changeFrequency: 'weekly' as const,
       priority: Math.max(0.5, 0.9 - (index * 0.1)), // 最新文章优先级更高
     }))
 
   // Category pages
-  const categoryPages = categories.map((category: any) => ({
+  const categoryPages = categories.map((category: { slug: { current: string } }) => ({
     url: `${baseUrl}/categories/${category.slug.current}`,
     lastModified: new Date(),
     changeFrequency: 'weekly' as const,

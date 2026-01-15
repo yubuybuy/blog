@@ -9,7 +9,7 @@ interface CategoryPageProps {
 
 export async function generateStaticParams() {
   const categories = await getCategories()
-  return categories.map((category: any) => ({
+  return categories.map((category: { slug: { current: string } }) => ({
     slug: category.slug.current,
   }))
 }
@@ -17,7 +17,7 @@ export async function generateStaticParams() {
 export async function generateMetadata({ params }: CategoryPageProps) {
   const { slug } = await params
   const categories = await getCategories()
-  const category = categories.find((cat: any) => cat.slug.current === slug)
+  const category = categories.find((cat: { slug: { current: string }; title: string; description?: string }) => cat.slug.current === slug)
   const siteName = await getSiteName()
 
   if (!category) {
@@ -39,7 +39,7 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
     getCategories()
   ])
 
-  const category = categories.find((cat: any) => cat.slug.current === slug)
+  const category = categories.find((cat: { slug: { current: string }; title: string; description?: string }) => cat.slug.current === slug)
 
   if (!category) {
     notFound()

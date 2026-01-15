@@ -15,7 +15,7 @@ interface PostPageProps {
 
 export async function generateStaticParams() {
   const posts = await getPosts()
-  return posts.map((post: any) => ({
+  return posts.map((post: { slug: { current: string } }) => ({
     slug: post.slug.current,
   }))
 }
@@ -41,12 +41,12 @@ export async function generateMetadata({ params }: PostPageProps) {
 
   return {
     title: `${post.title} - ${siteName}`,
-    description: post.excerpt || `阅读关于"${post.title}"的详细内容，了解更多相关信息和见解。`,
-    keywords: post.categories?.map(cat => cat.title).join(', ') || '',
+    description: post.excerpt || `阅读关于&ldquo;${post.title}&rdquo;的详细内容，了解更多相关信息和见解。`,
+    keywords: post.categories?.map((cat: { title: string }) => cat.title).join(', ') || '',
     authors: [{ name: post.author?.name || '博主' }],
     openGraph: {
       title: post.title,
-      description: post.excerpt || `阅读关于"${post.title}"的详细内容`,
+      description: post.excerpt || `阅读关于&ldquo;${post.title}&rdquo;的详细内容`,
       images: [{
         url: imageUrl,
         width: 1200,
@@ -58,12 +58,12 @@ export async function generateMetadata({ params }: PostPageProps) {
       modifiedTime: post._updatedAt || post.publishedAt,
       authors: [post.author?.name || '博主'],
       section: post.categories?.[0]?.title || '文章',
-      tags: post.categories?.map(cat => cat.title) || []
+      tags: post.categories?.map((cat: { title: string }) => cat.title) || []
     },
     twitter: {
       card: 'summary_large_image',
       title: post.title,
-      description: post.excerpt || `阅读关于"${post.title}"的详细内容`,
+      description: post.excerpt || `阅读关于&ldquo;${post.title}&rdquo;的详细内容`,
       images: [imageUrl],
       creator: '@yourusername'
     },
@@ -82,7 +82,7 @@ export async function generateMetadata({ params }: PostPageProps) {
 
 const portableTextComponents = {
   types: {
-    image: ({ value }: any) => (
+    image: ({ value }: { value: { asset?: unknown; alt?: string; [key: string]: unknown } }) => (
       <div className="my-6 sm:my-8">
         <Image
           src={urlFor(value).width(800).height(400).url()}
@@ -98,7 +98,7 @@ const portableTextComponents = {
     ),
   },
   marks: {
-    link: ({ children, value }: any) => (
+    link: ({ children, value }: { children: React.ReactNode; value: { href: string } }) => (
       <a
         href={value.href}
         className="text-blue-600 hover:text-blue-800 underline"
@@ -108,9 +108,15 @@ const portableTextComponents = {
         {children}
       </a>
     ),
-    imageMarkdown: ({ children }: any) => {
+    imageMarkdown: ({ children }: { children: React.ReactNode }) => {
       // 解析markdown图片语法
-      const text = children[0];
+      if (!children || (Array.isArray(children) && children.length === 0)) {
+        return <span></span>;
+      }
+      const text = Array.isArray(children) ? children[0] : children;
+      if (typeof text !== 'string') {
+        return <span>{children}</span>;
+      }
       const imageMatch = text.match(/!\[(.*?)\]\((.*?)\)/);
       if (imageMatch) {
         return (
@@ -133,33 +139,34 @@ const portableTextComponents = {
     },
   },
   block: {
-    h1: ({ children }: any) => (
+    h1: ({ children }: { children: React.ReactNode }) => (
       <h1 className="text-2xl sm:text-3xl font-bold mt-6 sm:mt-8 mb-3 sm:mb-4">{children}</h1>
     ),
-    h2: ({ children }: any) => (
+    h2: ({ children }: { children: React.ReactNode }) => (
       <h2 className="text-xl sm:text-2xl font-bold mt-5 sm:mt-6 mb-2 sm:mb-3">{children}</h2>
     ),
-    h3: ({ children }: any) => (
+    h3: ({ children }: { children: React.ReactNode }) => (
       <h3 className="text-lg sm:text-xl font-bold mt-4 sm:mt-5 mb-2">{children}</h3>
     ),
-    h4: ({ children }: any) => (
+    h4: ({ children }: { children: React.ReactNode }) => (
       <h4 className="text-lg font-bold mt-4 mb-2">{children}</h4>
     ),
-    blockquote: ({ children }: any) => (
+    blockquote: ({ children }: { children: React.ReactNode }) => (
       <blockquote className="border-l-4 border-gray-300 pl-3 sm:pl-4 italic my-4 text-sm sm:text-base">
         {children}
       </blockquote>
     ),
-    normal: ({ children }: any) => {
+    normal: ({ children }: { children: React.ReactNode }) => {
       // 检查是否包含图片markdown
-      const hasImageMarkdown = children.some((child: any) =>
+      const childArray = Array.isArray(children) ? children : [children];
+      const hasImageMarkdown = childArray.some((child: unknown) =>
         typeof child === 'string' && child.match(/!\[.*?\]\(.*?\)/)
       );
 
       if (hasImageMarkdown) {
         return (
           <div>
-            {children.map((child: any, index: number) => {
+            {childArray.map((child: unknown, index: number) => {
               if (typeof child === 'string' && child.match(/!\[.*?\]\(.*?\)/)) {
                 const imageMatch = child.match(/!\[(.*?)\]\((.*?)\)/);
                 if (imageMatch) {
@@ -182,7 +189,7 @@ const portableTextComponents = {
                   );
                 }
               }
-              return <span key={index}>{child}</span>;
+              return <span key={index}>{typeof child === 'string' || typeof child === 'number' ? child : ''}</span>;
             })}
           </div>
         );
@@ -191,10 +198,10 @@ const portableTextComponents = {
     },
   },
   list: {
-    bullet: ({ children }: any) => (
+    bullet: ({ children }: { children: React.ReactNode }) => (
       <ul className="list-disc list-inside mb-4 space-y-1">{children}</ul>
     ),
-    number: ({ children }: any) => (
+    number: ({ children }: { children: React.ReactNode }) => (
       <ol className="list-decimal list-inside mb-4 space-y-1">{children}</ol>
     ),
   },
@@ -279,7 +286,7 @@ export default async function PostPage({ params }: PostPageProps) {
       {/* Article Header */}
       <header className="mb-8">
         <div className="flex flex-wrap gap-2 mb-4">
-          {post.categories?.map((category) => (
+          {post.categories?.map((category: { _id: string; slug: { current: string }; title: string }) => (
             <Link
               key={category._id}
               href={`/categories/${category.slug.current}`}
@@ -334,7 +341,7 @@ export default async function PostPage({ params }: PostPageProps) {
           <MarkdownContent content={post.markdownContent} />
         ) : post.body ? (
           // 降级到原有的PortableText
-          <PortableText value={post.body} components={portableTextComponents} />
+          <PortableText value={post.body} components={portableTextComponents as any} />
         ) : (
           <p>内容加载中...</p>
         )}
