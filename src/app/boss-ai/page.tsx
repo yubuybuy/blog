@@ -378,7 +378,7 @@ function AIContentGenerator({ onLogout }: { onLogout: () => void }) {
               <label className="block text-xs font-medium text-gray-700 mb-1">内容模板</label>
               <select
                 value={contentTemplate}
-                onChange={(e) => setContentTemplate(e.target.value)}
+                onChange={(e) => setContentTemplate(e.target.value as 'movieReview' | 'enhanced' | 'safe')}
                 className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
               >
                 <option value="movieReview">🎬 影评风格</option>
