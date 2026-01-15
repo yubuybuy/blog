@@ -4,12 +4,6 @@ export default defineType({
   name: 'siteSettings',
   title: '网站设置',
   type: 'document',
-  __experimental_actions: [
-    // 只允许创建和更新，不允许删除和复制
-    'create',
-    'update',
-    'publish'
-  ],
   fields: [
     defineField({
       name: 'title',
