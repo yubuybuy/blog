@@ -152,7 +152,7 @@ async function generateWithGemini(resourceInfo: ResourceInfo): Promise<Generated
     if (codeBlockMatch) {
       try {
         // 使用与Cohere完全相同的修复逻辑
-        let jsonStr = codeBlockMatch[1]
+        const jsonStr = codeBlockMatch[1]
           .trim()
           .replace(/\n/g, '\\n')
           .replace(/\r/g, '\\r');
@@ -223,7 +223,7 @@ async function generateWithCohere(resourceInfo: ResourceInfo): Promise<Generated
     console.log('Cohere原始响应:', generatedText.substring(0, 500) + '...');
 
     // 增强的JSON解析逻辑
-    let jsonMatch = generatedText.match(/\{[\s\S]*\}/);
+    const jsonMatch = generatedText.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
       try {
         const parsed = JSON.parse(jsonMatch[0]);
@@ -235,7 +235,7 @@ async function generateWithCohere(resourceInfo: ResourceInfo): Promise<Generated
     }
 
     // 尝试从markdown代码块中提取JSON
-    let codeBlockMatch = generatedText.match(/```json\s*([\s\S]*?)\s*```/);
+    const codeBlockMatch = generatedText.match(/```json\s*([\s\S]*?)\s*```/);
     if (!codeBlockMatch) {
       // 如果没有完整的代码块，尝试匹配不完整的
       codeBlockMatch = generatedText.match(/```json\s*([\s\S]*?)$/);
@@ -244,7 +244,7 @@ async function generateWithCohere(resourceInfo: ResourceInfo): Promise<Generated
     if (codeBlockMatch) {
       try {
         // 最简单直接的方法：只替换换行符为\\n
-        let jsonStr = codeBlockMatch[1]
+        const jsonStr = codeBlockMatch[1]
           .trim()
           .replace(/\n/g, '\\n')
           .replace(/\r/g, '\\r');
@@ -436,7 +436,7 @@ function convertToBlockContent(markdown: string) {
 // 解析行内markdown（粗体、链接等）
 function parseInlineMarkdown(text: string) {
   const children = [];
-  let currentText = text;
+  const currentText = text;
 
   // 简单处理，可以进一步优化
   if (currentText.includes('**') || currentText.includes('[')) {

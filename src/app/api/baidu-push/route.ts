@@ -4,6 +4,15 @@ import { authenticateRequest } from '@/lib/auth'
 
 export const dynamic = 'force-dynamic'
 
+// Sanity 文章类型定义
+interface SanityPost {
+  slug: {
+    current: string;
+  };
+  title: string;
+  publishedAt: string;
+}
+
 const client = createClient({
   projectId: process.env.NEXT_PUBLIC_SANITY_PROJECT_ID!,
   dataset: process.env.NEXT_PUBLIC_SANITY_DATASET || 'production',
@@ -61,10 +70,10 @@ export async function POST(request: NextRequest) {
       result,
       pushedUrls: urls,
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('百度推送失败:', error)
     return NextResponse.json(
-      { error: '推送失败', details: error.message },
+      { error: '推送失败', details: error instanceof Error ? error.message : String(error) },
       { status: 500 }
     )
   }
@@ -136,7 +145,7 @@ export async function GET(request: NextRequest) {
     }
 
     // 构建URL列表（确保不超过配额）
-    const urls = postsToSend.slice(0, DAILY_QUOTA).map((post: any) => `${baseUrl}/posts/${post.slug.current}`)
+    const urls = postsToSend.slice(0, DAILY_QUOTA).map((post: SanityPost) => `${baseUrl}/posts/${post.slug.current}`)
 
     console.log(`准备推送 ${urls.length} 个URL（配额：${DAILY_QUOTA}条/天）`)
 
@@ -180,13 +189,13 @@ export async function GET(request: NextRequest) {
       result,
       totalUrls: urls.length,
       pushedUrls: urls,
-      articles: postsToSend.map((p: any) => ({ title: p.title, publishedAt: p.publishedAt })),
+      articles: postsToSend.map((p: SanityPost) => ({ title: p.title, publishedAt: p.publishedAt })),
       strategy: recentPosts.length > 0 ? 'new_articles' : 'rotation'
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('百度推送失败:', error)
     return NextResponse.json(
-      { error: '推送失败', details: error.message },
+      { error: '推送失败', details: error instanceof Error ? error.message : String(error) },
       { status: 500 }
     )
   }
