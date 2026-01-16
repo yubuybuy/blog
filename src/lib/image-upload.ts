@@ -22,6 +22,17 @@ interface SanityImageAsset {
   customUrl?: string;
 }
 
+// 备选图片类型（URL方式）
+interface SanityImageUrl {
+  _type: 'image';
+  customUrl: string;
+  alt: string;
+  asset?: {
+    _type: 'reference';
+    _ref: string;
+  };
+}
+
 // 从URL下载图片并上传到Sanity
 export async function uploadImageToSanity(imageUrl: string, filename: string): Promise<SanityImageAsset | null> {
   try {
@@ -63,7 +74,7 @@ export async function uploadImageToSanity(imageUrl: string, filename: string): P
 }
 
 // 处理电影海报：优先上传到Sanity，失败时使用URL
-export async function processMoviePoster(imageUrl: string, movieTitle: string): Promise<SanityImageAsset | null> {
+export async function processMoviePoster(imageUrl: string, movieTitle: string): Promise<SanityImageAsset | SanityImageUrl | null> {
   if (!imageUrl) {
     return null;
   }
@@ -83,6 +94,6 @@ export async function processMoviePoster(imageUrl: string, movieTitle: string): 
       _type: 'image',
       customUrl: imageUrl,
       alt: `电影海报 - ${movieTitle}`
-    };
+    } as SanityImageUrl;
   }
 }

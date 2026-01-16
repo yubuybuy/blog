@@ -292,7 +292,7 @@ export async function getMoviePosterEnhanced(movieTitle: string): Promise<string
 // 生成搜索变体
 function generateSearchVariants(title: string): Array<{query: string, year?: string, strategy: string}> {
   const variants = [];
-  const year = extractYear(title);
+  const year = extractYear(title) || undefined; // 将 null 转换为 undefined
 
   // 1. 标准化处理
   const normalized = normalizeMovieName(title);
