@@ -12,7 +12,8 @@ export function middleware(_request: NextRequest) {
   // 允许从可信来源加载资源
   const cspDirectives = [
     "default-src 'self'",
-    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.sanity.io https://vercel.live",
+    // script-src: 限制脚本来源，移除 unsafe-eval，保留 unsafe-inline（Next.js 需要）
+    "script-src 'self' 'unsafe-inline' https://cdn.sanity.io https://vercel.live",
     "style-src 'self' 'unsafe-inline' https://cdn.sanity.io https://fonts.googleapis.com",
     "img-src 'self' data: blob: https: http:",
     "font-src 'self' data: https://fonts.gstatic.com https://cdn.sanity.io",
@@ -22,7 +23,10 @@ export function middleware(_request: NextRequest) {
     "base-uri 'self'",
     "form-action 'self'",
     "frame-ancestors 'self'",
-    "upgrade-insecure-requests"
+    "upgrade-insecure-requests",
+    // 添加 worker-src 和 manifest-src 安全策略
+    "worker-src 'self' blob:",
+    "manifest-src 'self'"
   ];
   response.headers.set('Content-Security-Policy', cspDirectives.join('; '));
 
