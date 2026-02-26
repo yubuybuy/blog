@@ -13,9 +13,10 @@ interface ResourceInfo {
 
 interface BatchResourceInfo extends ResourceInfo {
   id: string;
-  status: 'pending' | 'generating' | 'completed' | 'error';
+  status: 'pending' | 'generating' | 'completed' | 'skipped' | 'error';
   result?: GeneratedContent;
   error?: string;
+  skippedReason?: string;
 }
 
 interface GeneratedContent {
@@ -286,13 +287,23 @@ function AIContentGenerator({ onLogout }: { onLogout: () => void }) {
         const data = await response.json()
 
         if (data.success) {
-          setBatchResources(prev => prev.map(r =>
-            r.id === resource.id ? {
-              ...r,
-              status: 'completed',
-              result: data.content
-            } : r
-          ))
+          if (data.skipped) {
+            setBatchResources(prev => prev.map(r =>
+              r.id === resource.id ? {
+                ...r,
+                status: 'skipped',
+                skippedReason: data.message || '资源已存在'
+              } : r
+            ))
+          } else {
+            setBatchResources(prev => prev.map(r =>
+              r.id === resource.id ? {
+                ...r,
+                status: 'completed',
+                result: data.content
+              } : r
+            ))
+          }
         } else {
           throw new Error(data.error || '生成失败')
         }
@@ -361,8 +372,8 @@ function AIContentGenerator({ onLogout }: { onLogout: () => void }) {
                 <button
                   onClick={() => setBatchMode(false)}
                   className={`px-4 py-2 rounded-lg text-sm ${!batchMode
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                     }`}
                 >
                   🎯 单个生成
@@ -370,8 +381,8 @@ function AIContentGenerator({ onLogout }: { onLogout: () => void }) {
                 <button
                   onClick={() => setBatchMode(true)}
                   className={`px-4 py-2 rounded-lg text-sm ${batchMode
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                     }`}
                 >
                   📦 批量生成
@@ -611,15 +622,17 @@ function AIContentGenerator({ onLogout }: { onLogout: () => void }) {
                       </span>
                       <div className="flex items-center gap-2">
                         <span className={`px-2 py-1 text-xs rounded-full ${resource.status === 'pending' ? 'bg-gray-100 text-gray-600' :
-                            resource.status === 'generating' ? 'bg-blue-100 text-blue-600' :
-                              resource.status === 'completed' ? 'bg-green-100 text-green-600' :
+                          resource.status === 'generating' ? 'bg-blue-100 text-blue-600' :
+                            resource.status === 'completed' ? 'bg-green-100 text-green-600' :
+                              resource.status === 'skipped' ? 'bg-yellow-100 text-yellow-700' :
                                 'bg-red-100 text-red-600'
                           }`}>
                           {
                             resource.status === 'pending' ? '⏳ 等待' :
                               resource.status === 'generating' ? '🔄 生成中' :
                                 resource.status === 'completed' ? '✅ 完成' :
-                                  '❌ 错误'
+                                  resource.status === 'skipped' ? '⏭️ 跳过' :
+                                    '❌ 错误'
                           }
                         </span>
                         <button
@@ -668,6 +681,12 @@ function AIContentGenerator({ onLogout }: { onLogout: () => void }) {
                         className="px-2 py-1 text-sm border border-gray-300 rounded"
                       />
                     </div>
+
+                    {resource.status === 'skipped' && (
+                      <div className="mt-2 text-xs text-yellow-700 bg-yellow-50 p-2 rounded">
+                        <strong>已跳过:</strong> {resource.skippedReason || '该资源可能已在近期发布过。'}
+                      </div>
+                    )}
 
                     {resource.status === 'error' && resource.error && (
                       <div className="mt-2 text-xs text-red-600 bg-red-50 p-2 rounded">
