@@ -6,6 +6,7 @@ import { createClient } from '@sanity/client';
 import { CURRENT_CONFIG, PROMPT_TEMPLATES } from '@/lib/generation-config';
 import { generateContentImage } from '@/lib/movie-poster';
 import { processMoviePoster } from '@/lib/image-upload';
+import { authenticateRequest } from '@/lib/auth';
 
 const sanityClient = createClient({
   projectId: process.env.NEXT_PUBLIC_SANITY_PROJECT_ID!,
@@ -35,6 +36,25 @@ async function findCategoryByName(categoryName: string) {
     return null;
   } catch (error) {
     console.error('查找分类失败:', error);
+    return null;
+  }
+}
+
+// 检查是否已经发布过相同的资源
+async function checkDuplicatePost(downloadLink: string) {
+  if (!downloadLink || downloadLink === '#') return false;
+
+  try {
+    const existingPost = await sanityClient.fetch(`
+      *[_type == "post" && (markdownContent match $downloadLink || downloadLink == $downloadLink)][0] {
+        _id,
+        title
+      }
+    `, { downloadLink: `*${downloadLink}*` });
+
+    return existingPost || null;
+  } catch (error) {
+    console.error('检查重复发布失败:', error);
     return null;
   }
 }
@@ -291,9 +311,9 @@ function fixInvalidLinks(content: string, resourceInfo: ResourceInfo): string {
     resourceInfo.downloadLink !== '#' &&
     resourceInfo.downloadLink.trim() !== '' &&
     (resourceInfo.downloadLink.includes('pan.baidu.com') ||
-     resourceInfo.downloadLink.includes('aliyundrive.com') ||
-     resourceInfo.downloadLink.includes('quark.cn') ||
-     resourceInfo.downloadLink.includes('http'));
+      resourceInfo.downloadLink.includes('aliyundrive.com') ||
+      resourceInfo.downloadLink.includes('quark.cn') ||
+      resourceInfo.downloadLink.includes('http'));
 
   if (!hasValidLink) {
     // 移除无效的下载链接
@@ -479,6 +499,16 @@ export async function POST(request: NextRequest) {
       }, { status: 429 });
     }
 
+    // 2.5 身份验证检查 (仅非开发环境或根据需要开启)
+    const auth = authenticateRequest(request);
+    if (!auth.authenticated) {
+      console.warn('❌ 身份验证失败:', auth.error, '- IP:', clientIp);
+      return NextResponse.json({
+        error: '未经授权的访问',
+        details: auth.error
+      }, { status: 401 });
+    }
+
     const { resource, generateOnly = false, publishPregenerated = false, content } = await request.json();
 
     if (!resource) {
@@ -505,6 +535,20 @@ export async function POST(request: NextRequest) {
     };
 
     console.log('✅ 安全检查通过，开始生成内容:', cleanResource.title);
+
+    // 0. 检查是否重复发布
+    if (!generateOnly && !publishPregenerated) {
+      const duplicate = await checkDuplicatePost(cleanResource.downloadLink);
+      if (duplicate) {
+        console.log(`🚫 资源已发布，跳过生成: ${cleanResource.title} (ID: ${duplicate._id})`);
+        return NextResponse.json({
+          success: true,
+          skipped: true,
+          message: '该资源已在近期发布过，已为您自动跳过',
+          existingPostId: duplicate._id
+        });
+      }
+    }
 
     let generatedContent;
     let aiMethod = 'unknown';

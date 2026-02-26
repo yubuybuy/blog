@@ -270,13 +270,6 @@ export default function DailyRecommendation() {
 
             {/* 操作按钮 */}
             <div className="flex flex-wrap gap-3">
-              <a
-                href="/boss-ai"
-                className="inline-flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium shadow-lg"
-              >
-                <span>📝</span>
-                快速录入资源
-              </a>
               <button
                 onClick={handleRefresh}
                 disabled={loading}
@@ -319,7 +312,8 @@ export default function DailyRecommendation() {
             )}
           </div>
         </div>
-      )}
-    </div>
+      )
+      }
+    </div >
   );
 }

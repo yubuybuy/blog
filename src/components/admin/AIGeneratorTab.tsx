@@ -178,18 +178,35 @@ export default function AIGeneratorTab() {
     reader.onload = (e) => {
       try {
         const text = e.target?.result as string
-        const lines = text.split('\n').filter(line => line.trim())
+        const lines = text.split(/\r?\n/).filter(line => line.trim())
+
+        // 更健壮的 CSV 行解析：支持带引号和逗号的数据
+        const parseCSVLine = (text: string) => {
+          const result = [];
+          let current = "";
+          let inQuotes = false;
+          for (let i = 0; i < text.length; i++) {
+            const char = text[i];
+            if (char === '"') inQuotes = !inQuotes;
+            else if (char === ',' && !inQuotes) {
+              result.push(current.trim());
+              current = "";
+            } else current += char;
+          }
+          result.push(current.trim());
+          return result;
+        };
 
         const resources: BatchResourceInfo[] = lines.slice(1).map((line, index) => {
-          const values = line.split(',').map(v => v.trim())
+          const values = parseCSVLine(line);
           return {
             id: `batch-${Date.now()}-${index}`,
             title: values[0] || '',
-            category: values[1] || '',
+            category: values[1] || '电影',
             description: values[2] || '',
             downloadLink: values[3] || '',
             files: [],
-            tags: values[4] ? values[4].split('|') : [],
+            tags: values[4] ? values[4].split('|').map(t => t.trim()) : [],
             status: 'pending' as const
           }
         }).filter(r => r.title)
@@ -321,8 +338,8 @@ export default function AIGeneratorTab() {
             <button
               onClick={() => setBatchMode(false)}
               className={`px-4 py-2 rounded-lg text-sm ${!batchMode
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                 }`}
             >
               🎯 单个生成
@@ -330,8 +347,8 @@ export default function AIGeneratorTab() {
             <button
               onClick={() => setBatchMode(true)}
               className={`px-4 py-2 rounded-lg text-sm ${batchMode
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                 }`}
             >
               📦 批量生成
@@ -598,9 +615,9 @@ export default function AIGeneratorTab() {
                     </span>
                     <div className="flex items-center gap-2">
                       <span className={`px-2 py-1 text-xs rounded-full ${resource.status === 'pending' ? 'bg-gray-100 text-gray-600' :
-                          resource.status === 'generating' ? 'bg-blue-100 text-blue-600' :
-                            resource.status === 'completed' ? 'bg-green-100 text-green-600' :
-                              'bg-red-100 text-red-600'
+                        resource.status === 'generating' ? 'bg-blue-100 text-blue-600' :
+                          resource.status === 'completed' ? 'bg-green-100 text-green-600' :
+                            'bg-red-100 text-red-600'
                         }`}>
                         {
                           resource.status === 'pending' ? '⏳ 等待' :
