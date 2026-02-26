@@ -70,6 +70,7 @@ export default function AIGeneratorTab() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('admin-token')}`
         },
         body: JSON.stringify({
           resource,
@@ -91,7 +92,7 @@ export default function AIGeneratorTab() {
         setProcessingTime(data.processingTime || 0)
 
         const aiName = data.method === 'gemini' ? 'Google Gemini' :
-                      data.method === 'cohere' ? 'Cohere AI' : 'AI'
+          data.method === 'cohere' ? 'Cohere AI' : 'AI'
 
         if (!generateOnly) {
           alert(`✅ 内容生成并发布成功！\n🤖 AI服务: ${aiName}\n⏱️ 耗时: ${data.processingTime || 0}ms`)
@@ -123,6 +124,7 @@ export default function AIGeneratorTab() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('admin-token')}`
         },
         body: JSON.stringify({
           resource,
@@ -142,7 +144,7 @@ export default function AIGeneratorTab() {
 
       if (data.success) {
         const aiName = aiMethod === 'gemini' ? 'Google Gemini' :
-                      aiMethod === 'cohere' ? 'Cohere AI' : 'AI'
+          aiMethod === 'cohere' ? 'Cohere AI' : 'AI'
 
         alert(`✅ 内容发布成功！\n🤖 AI服务: ${aiName}\n📝 文章已上线`)
 
@@ -223,6 +225,7 @@ export default function AIGeneratorTab() {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('admin-token')}`
           },
           body: JSON.stringify({
             resource: {
@@ -317,21 +320,19 @@ export default function AIGeneratorTab() {
           <div className="flex items-center gap-2">
             <button
               onClick={() => setBatchMode(false)}
-              className={`px-4 py-2 rounded-lg text-sm ${
-                !batchMode
+              className={`px-4 py-2 rounded-lg text-sm ${!batchMode
                   ? 'bg-blue-600 text-white'
                   : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-              }`}
+                }`}
             >
               🎯 单个生成
             </button>
             <button
               onClick={() => setBatchMode(true)}
-              className={`px-4 py-2 rounded-lg text-sm ${
-                batchMode
+              className={`px-4 py-2 rounded-lg text-sm ${batchMode
                   ? 'bg-blue-600 text-white'
                   : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-              }`}
+                }`}
             >
               📦 批量生成
             </button>
@@ -480,7 +481,7 @@ export default function AIGeneratorTab() {
                     <div className="flex items-center gap-4">
                       <span className="font-medium text-green-800">
                         🤖 AI服务: {aiMethod === 'gemini' ? 'Google Gemini' :
-                                   aiMethod === 'cohere' ? 'Cohere AI' : 'Unknown AI'}
+                          aiMethod === 'cohere' ? 'Cohere AI' : 'Unknown AI'}
                       </span>
                       <span className="text-green-700">
                         ⏱️ 耗时: {processingTime}ms
@@ -596,17 +597,16 @@ export default function AIGeneratorTab() {
                       #{index + 1}
                     </span>
                     <div className="flex items-center gap-2">
-                      <span className={`px-2 py-1 text-xs rounded-full ${
-                        resource.status === 'pending' ? 'bg-gray-100 text-gray-600' :
-                        resource.status === 'generating' ? 'bg-blue-100 text-blue-600' :
-                        resource.status === 'completed' ? 'bg-green-100 text-green-600' :
-                        'bg-red-100 text-red-600'
-                      }`}>
+                      <span className={`px-2 py-1 text-xs rounded-full ${resource.status === 'pending' ? 'bg-gray-100 text-gray-600' :
+                          resource.status === 'generating' ? 'bg-blue-100 text-blue-600' :
+                            resource.status === 'completed' ? 'bg-green-100 text-green-600' :
+                              'bg-red-100 text-red-600'
+                        }`}>
                         {
                           resource.status === 'pending' ? '⏳ 等待' :
-                          resource.status === 'generating' ? '🔄 生成中' :
-                          resource.status === 'completed' ? '✅ 完成' :
-                          '❌ 错误'
+                            resource.status === 'generating' ? '🔄 生成中' :
+                              resource.status === 'completed' ? '✅ 完成' :
+                                '❌ 错误'
                         }
                       </span>
                       <button

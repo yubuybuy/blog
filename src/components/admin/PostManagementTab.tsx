@@ -23,7 +23,11 @@ export default function PostManagementTab() {
     setLoading(true)
     try {
       // 直接使用Sanity client获取文章
-      const response = await fetch('/api/posts-management')
+      const response = await fetch('/api/posts-management', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('admin-token')}`
+        }
+      })
       const data = await response.json()
       if (data.success) {
         setPosts(data.posts || [])
@@ -47,7 +51,10 @@ export default function PostManagementTab() {
     try {
       const response = await fetch('/api/recycle-bin', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('admin-token')}`
+        },
         body: JSON.stringify({ postId, action: 'soft_delete' })
       })
 
@@ -83,7 +90,10 @@ export default function PostManagementTab() {
       try {
         const response = await fetch('/api/recycle-bin', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('admin-token')}`
+          },
           body: JSON.stringify({ postId, action: 'soft_delete' })
         })
 

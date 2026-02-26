@@ -20,7 +20,11 @@ export default function RecycleBinTab() {
   const loadRecycleBin = async () => {
     setLoading(true)
     try {
-      const response = await fetch('/api/recycle-bin')
+      const response = await fetch('/api/recycle-bin', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('admin-token')}`
+        }
+      })
       const data = await response.json()
       if (data.success) {
         setItems(data.items || [])
@@ -43,7 +47,10 @@ export default function RecycleBinTab() {
     try {
       const response = await fetch('/api/recycle-bin', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('admin-token')}`
+        },
         body: JSON.stringify({ postId: id, action: 'restore' })
       })
 
@@ -71,7 +78,10 @@ export default function RecycleBinTab() {
     try {
       const response = await fetch('/api/recycle-bin', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('admin-token')}`
+        },
         body: JSON.stringify({ postId: id, action: 'permanent_delete' })
       })
 
@@ -103,7 +113,10 @@ export default function RecycleBinTab() {
     setLoading(true)
     try {
       const response = await fetch('/api/recycle-bin', {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('admin-token')}`
+        }
       })
 
       const data = await response.json()
