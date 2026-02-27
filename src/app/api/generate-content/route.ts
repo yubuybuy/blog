@@ -62,7 +62,7 @@ async function checkDuplicatePost(downloadLink: string) {
 // 简单的速率限制 - 内存存储
 const rateLimitMap = new Map();
 const RATE_LIMIT_WINDOW = 60 * 1000; // 1分钟
-const MAX_REQUESTS = 5; // 每分钟最多5次请求
+const MAX_REQUESTS = 200; // 每分钟最多200次请求
 
 function checkRateLimit(ip: string): boolean {
   const now = Date.now();
