@@ -88,6 +88,11 @@ export default function AIGeneratorTab() {
       const data = await response.json()
 
       if (data.success) {
+        if (data.skipped) {
+          alert(`⏭️ 该资源已发布过，已自动跳过。\n\n已存在文章 ID: ${data.existingPostId || '未知'}`)
+          return
+        }
+
         setResult(data.content)
         setAiMethod(data.method || 'unknown')
         setProcessingTime(data.processingTime || 0)

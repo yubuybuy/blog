@@ -59,6 +59,12 @@ export default defineType({
       type: 'datetime',
     }),
     defineField({
+      name: 'downloadLink',
+      title: '网盘下载链接',
+      type: 'string',
+      description: '资源的网盘下载地址，用于防重复发布检测'
+    }),
+    defineField({
       name: 'excerpt',
       title: '文章摘要',
       type: 'text',

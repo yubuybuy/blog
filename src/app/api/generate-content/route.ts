@@ -46,11 +46,11 @@ async function checkDuplicatePost(downloadLink: string) {
 
   try {
     const existingPost = await sanityClient.fetch(`
-      *[_type == "post" && (markdownContent match $downloadLink || downloadLink == $downloadLink)][0] {
+      *[_type == "post" && downloadLink == $downloadLink][0] {
         _id,
         title
       }
-    `, { downloadLink: `*${downloadLink}*` });
+    `, { downloadLink });
 
     return existingPost || null;
   } catch (error) {
@@ -377,6 +377,7 @@ async function publishToSanity(content: GeneratedContent, resourceInfo: Resource
       author: null,
       categories: categoryRef ? [categoryRef] : [], // 关联到对应分类
       mainImage: mainImage, // 使用Sanity托管的图片
+      downloadLink: resourceInfo.downloadLink || null, // 存储网盘链接，用于防重复检测
       // 保留URL字段作为备份（兼容性）
       mainImageUrl: imageUrl
     };
