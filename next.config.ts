@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  serverExternalPackages: ['xlsx'],
+  serverExternalPackages: ['read-excel-file', 'unzipper'],
   images: {
     domains: [
       'cdn.sanity.io',
