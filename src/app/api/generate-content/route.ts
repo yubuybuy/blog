@@ -40,19 +40,32 @@ async function findCategoryByName(categoryName: string) {
   }
 }
 
-// 检查是否已经发布过相同的资源
-async function checkDuplicatePost(downloadLink: string) {
-  if (!downloadLink || downloadLink === '#') return false;
-
+// 检查是否已经发布过相同的资源（通过网盘链接或资源标题）
+async function checkDuplicatePost(downloadLink: string, title: string) {
   try {
-    const existingPost = await sanityClient.fetch(`
-      *[_type == "post" && downloadLink == $downloadLink][0] {
-        _id,
-        title
-      }
-    `, { downloadLink });
+    // 1. 先检查网盘链接
+    if (downloadLink && downloadLink !== '#' && downloadLink.trim()) {
+      const byLink = await sanityClient.fetch(`
+        *[_type == "post" && downloadLink == $downloadLink][0] {
+          _id,
+          title
+        }
+      `, { downloadLink });
+      if (byLink) return byLink;
+    }
 
-    return existingPost || null;
+    // 2. 再检查标题（资源名包含在文章标题中，或文章标题包含资源名）
+    if (title && title.trim()) {
+      const byTitle = await sanityClient.fetch(`
+        *[_type == "post" && (title match $titlePattern || title == $title)][0] {
+          _id,
+          title
+        }
+      `, { title: title.trim(), titlePattern: `*${title.trim()}*` });
+      if (byTitle) return byTitle;
+    }
+
+    return null;
   } catch (error) {
     console.error('检查重复发布失败:', error);
     return null;
@@ -539,7 +552,7 @@ export async function POST(request: NextRequest) {
 
     // 0. 检查是否重复发布
     if (!generateOnly && !publishPregenerated) {
-      const duplicate = await checkDuplicatePost(cleanResource.downloadLink);
+      const duplicate = await checkDuplicatePost(cleanResource.downloadLink, cleanResource.title);
       if (duplicate) {
         console.log(`🚫 资源已发布，跳过生成: ${cleanResource.title} (ID: ${duplicate._id})`);
         return NextResponse.json({
