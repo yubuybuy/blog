@@ -7,6 +7,7 @@ import AIGeneratorTab from '@/components/admin/AIGeneratorTab'
 import SanityStudioTab from '@/components/admin/SanityStudioTab'
 import PostManagementTab from '@/components/admin/PostManagementTab'
 import DailyRecommendation from '@/components/admin/DailyRecommendation'
+import PlatformContentTab from '@/components/admin/PlatformContentTab'
 
 // 密码保护组件
 function AdminPasswordProtection({ onSuccess }: { onSuccess: () => void }) {
@@ -128,10 +129,11 @@ function AdminPasswordProtection({ onSuccess }: { onSuccess: () => void }) {
 
 // 主管理界面
 function AdminDashboard({ onLogout }: { onLogout: () => void }) {
-  const [activeTab, setActiveTab] = useState<'ai' | 'posts' | 'recycle' | 'sanity' | 'wechat'>('ai')
+  const [activeTab, setActiveTab] = useState<'ai' | 'platform' | 'posts' | 'recycle' | 'sanity' | 'wechat'>('ai')
 
   const tabs = [
     { id: 'ai' as const, name: '🤖 AI内容生成', icon: '🚀' },
+    { id: 'platform' as const, name: '📢 多平台内容', icon: '📋' },
     { id: 'posts' as const, name: '📚 文章管理', icon: '📝' },
     { id: 'wechat' as const, name: '📱 公众号发布', icon: '💬' },
     { id: 'recycle' as const, name: '🗑️ 回收站管理', icon: '♻️' },
@@ -184,6 +186,7 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
         <DailyRecommendation />
 
         {activeTab === 'ai' && <AIGeneratorTab />}
+        {activeTab === 'platform' && <PlatformContentTab />}
         {activeTab === 'posts' && <PostManagementTab />}
         {activeTab === 'wechat' && (
           <div>
