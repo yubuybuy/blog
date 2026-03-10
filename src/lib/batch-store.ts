@@ -38,6 +38,7 @@ export interface BatchJob {
     generateOnly?: boolean;
     contentTemplate?: string;
     autoPublishDelay?: number;
+    enableMultiPlatform?: boolean;
   };
   resources: BatchItem[];
 }

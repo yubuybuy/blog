@@ -43,6 +43,7 @@ async function generateOne(
           },
           generateOnly: job.settings.generateOnly || false,
           template: job.settings.contentTemplate || 'movieReview',
+          enableMultiPlatform: job.settings.enableMultiPlatform || false,
         }),
       });
 

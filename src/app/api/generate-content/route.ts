@@ -130,24 +130,37 @@ interface GeneratedContent {
   content: string;
   tags: string[];
   imagePrompt: string;
+  faq?: Array<{ question: string; answer: string }>;
+  platformContent?: {
+    zhihu?: string;
+    wechat?: string;
+    xiaohongshu?: string;
+    toutiao?: string;
+  };
 }
 
 // Google Gemini AI生成（优化版）
-async function generateWithGemini(resourceInfo: ResourceInfo): Promise<GeneratedContent | null> {
+async function generateWithGemini(resourceInfo: ResourceInfo, useMultiPlatform: boolean = false): Promise<GeneratedContent | null> {
   const apiKey = process.env.GEMINI_API_KEY;
   console.log('Gemini API Key存在:', !!apiKey);
   if (!apiKey) return null;
 
   try {
-    // 使用影评作者模板并替换变量
-    const prompt = PROMPT_TEMPLATES.movieReview
-      .replace('{title}', resourceInfo.title)
-      .replace('{category}', resourceInfo.category)
-      .replace('{tags}', resourceInfo.tags.join(', '))
-      .replace('{description}', resourceInfo.description || '暂无详细描述')
-      .replace('{downloadLink}', resourceInfo.downloadLink || '#');
+    // 根据是否开启多平台选择模板
+    const templateKey = useMultiPlatform ? 'movieReviewMultiPlatform' : 'movieReview';
+    const prompt = PROMPT_TEMPLATES[templateKey]
+      .replace(/{title}/g, resourceInfo.title)
+      .replace(/{category}/g, resourceInfo.category)
+      .replace(/{tags}/g, resourceInfo.tags.join(', '))
+      .replace(/{description}/g, resourceInfo.description || '暂无详细描述')
+      .replace(/{downloadLink}/g, resourceInfo.downloadLink || '#');
 
-    console.log('发送Gemini请求...');
+    // 多平台模式下增加 token 限制
+    const maxTokens = useMultiPlatform
+      ? CURRENT_CONFIG.modelParams.gemini.maxTokens * CURRENT_CONFIG.modelParams.multiPlatformTokenMultiplier
+      : CURRENT_CONFIG.modelParams.gemini.maxTokens;
+
+    console.log('发送Gemini请求...', useMultiPlatform ? '(多平台模式)' : '');
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
       method: 'POST',
       headers: {
@@ -161,7 +174,7 @@ async function generateWithGemini(resourceInfo: ResourceInfo): Promise<Generated
         }],
         generationConfig: {
           temperature: CURRENT_CONFIG.modelParams.gemini.temperature,
-          maxOutputTokens: CURRENT_CONFIG.modelParams.gemini.maxTokens,
+          maxOutputTokens: maxTokens,
           topP: CURRENT_CONFIG.modelParams.gemini.topP,
           topK: CURRENT_CONFIG.modelParams.gemini.topK
         }
@@ -212,21 +225,27 @@ async function generateWithGemini(resourceInfo: ResourceInfo): Promise<Generated
 }
 
 // Cohere AI生成（优化版）
-async function generateWithCohere(resourceInfo: ResourceInfo): Promise<GeneratedContent | null> {
+async function generateWithCohere(resourceInfo: ResourceInfo, useMultiPlatform: boolean = false): Promise<GeneratedContent | null> {
   const apiKey = process.env.COHERE_API_KEY;
   console.log('Cohere API Key存在:', !!apiKey);
   if (!apiKey) return null;
 
   try {
-    // 使用影评作者模板并替换变量
-    const prompt = PROMPT_TEMPLATES.movieReview
-      .replace('{title}', resourceInfo.title)
-      .replace('{category}', resourceInfo.category)
-      .replace('{tags}', resourceInfo.tags.join(', '))
-      .replace('{description}', resourceInfo.description || '暂无详细描述')
-      .replace('{downloadLink}', resourceInfo.downloadLink || '#');
+    // 根据是否开启多平台选择模板
+    const templateKey = useMultiPlatform ? 'movieReviewMultiPlatform' : 'movieReview';
+    const prompt = PROMPT_TEMPLATES[templateKey]
+      .replace(/{title}/g, resourceInfo.title)
+      .replace(/{category}/g, resourceInfo.category)
+      .replace(/{tags}/g, resourceInfo.tags.join(', '))
+      .replace(/{description}/g, resourceInfo.description || '暂无详细描述')
+      .replace(/{downloadLink}/g, resourceInfo.downloadLink || '#');
 
-    console.log('发送Cohere请求...');
+    // 多平台模式下增加 token 限制
+    const maxTokens = useMultiPlatform
+      ? CURRENT_CONFIG.modelParams.cohere.maxTokens * CURRENT_CONFIG.modelParams.multiPlatformTokenMultiplier
+      : CURRENT_CONFIG.modelParams.cohere.maxTokens;
+
+    console.log('发送Cohere请求...', useMultiPlatform ? '(多平台模式)' : '');
     const response = await fetch('https://api.cohere.ai/v1/chat', {
       method: 'POST',
       headers: {
@@ -236,7 +255,7 @@ async function generateWithCohere(resourceInfo: ResourceInfo): Promise<Generated
       body: JSON.stringify({
         model: CURRENT_CONFIG.modelParams.cohere.model,
         message: prompt,
-        max_tokens: CURRENT_CONFIG.modelParams.cohere.maxTokens,
+        max_tokens: maxTokens,
         temperature: CURRENT_CONFIG.modelParams.cohere.temperature,
         presence_penalty: CURRENT_CONFIG.modelParams.cohere.presencePenalty,
         frequency_penalty: CURRENT_CONFIG.modelParams.cohere.frequencyPenalty
@@ -391,6 +410,8 @@ async function publishToSanity(content: GeneratedContent, resourceInfo: Resource
       categories: categoryRef ? [categoryRef] : [], // 关联到对应分类
       mainImage: mainImage, // 使用Sanity托管的图片
       downloadLink: resourceInfo.downloadLink || null, // 存储网盘链接，用于防重复检测
+      // 多平台内容
+      platformContent: content.platformContent || null,
       // 保留URL字段作为备份（兼容性）
       mainImageUrl: imageUrl
     };
@@ -523,7 +544,7 @@ export async function POST(request: NextRequest) {
       }, { status: 401 });
     }
 
-    const { resource, generateOnly = false, publishPregenerated = false, content } = await request.json();
+    const { resource, generateOnly = false, publishPregenerated = false, content, enableMultiPlatform = false } = await request.json();
 
     if (!resource) {
       return NextResponse.json({ error: '缺少资源信息' }, { status: 400 });
@@ -575,12 +596,12 @@ export async function POST(request: NextRequest) {
     } else {
       // 正常AI生成流程
       // 先尝试Gemini，失败后使用Cohere作为备选
-      generatedContent = await generateWithGemini(cleanResource);
+      generatedContent = await generateWithGemini(cleanResource, enableMultiPlatform);
       aiMethod = 'gemini';
 
       if (!generatedContent) {
         console.log('Gemini失败，尝试Cohere备选 - IP:', clientIp);
-        generatedContent = await generateWithCohere(cleanResource);
+        generatedContent = await generateWithCohere(cleanResource, enableMultiPlatform);
         aiMethod = 'cohere';
       }
 

@@ -65,6 +65,19 @@ export default defineType({
       description: '资源的网盘下载地址，用于防重复发布检测'
     }),
     defineField({
+      name: 'platformContent',
+      title: '多平台内容',
+      type: 'object',
+      description: '各平台推广版本的差异化内容',
+      fields: [
+        defineField({ name: 'zhihu', title: '知乎', type: 'text', rows: 10 }),
+        defineField({ name: 'wechat', title: '微信公众号', type: 'text', rows: 8 }),
+        defineField({ name: 'xiaohongshu', title: '小红书', type: 'text', rows: 6 }),
+        defineField({ name: 'toutiao', title: '百家号/头条', type: 'text', rows: 8 }),
+      ],
+      options: { collapsible: true, collapsed: true },
+    }),
+    defineField({
       name: 'excerpt',
       title: '文章摘要',
       type: 'text',

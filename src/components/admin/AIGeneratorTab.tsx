@@ -25,6 +25,12 @@ interface GeneratedContent {
   content: string;
   tags: string[];
   imagePrompt: string;
+  platformContent?: {
+    zhihu?: string;
+    wechat?: string;
+    xiaohongshu?: string;
+    toutiao?: string;
+  };
 }
 
 interface JobStatus {
@@ -39,6 +45,65 @@ interface JobStatus {
 }
 
 const POLL_INTERVAL = 5000;
+
+const PLATFORM_LABELS: Record<string, string> = {
+  zhihu: '知乎',
+  wechat: '微信公众号',
+  xiaohongshu: '小红书',
+  toutiao: '百家号/头条',
+}
+
+function PlatformContentPanel({ platformContent }: { platformContent: NonNullable<GeneratedContent['platformContent']> }) {
+  const [expanded, setExpanded] = useState(true)
+  const [copiedKey, setCopiedKey] = useState<string | null>(null)
+
+  const handleCopy = async (key: string, text: string) => {
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopiedKey(key)
+      setTimeout(() => setCopiedKey(null), 2000)
+    } catch {
+      alert('复制失败，请手动选择复制')
+    }
+  }
+
+  const platforms = (['zhihu', 'wechat', 'xiaohongshu', 'toutiao'] as const).filter(
+    k => platformContent[k]
+  )
+
+  if (platforms.length === 0) return null
+
+  return (
+    <div className="border-t pt-4 mt-4">
+      <button onClick={() => setExpanded(!expanded)}
+        className="flex items-center gap-2 text-sm font-semibold text-gray-700 hover:text-gray-900 w-full text-left">
+        <span>{expanded ? '▼' : '▶'}</span>
+        <span>多平台内容版本 ({platforms.length})</span>
+      </button>
+      {expanded && (
+        <div className="mt-3 space-y-4">
+          {platforms.map(key => (
+            <div key={key} className="border border-gray-200 rounded-lg overflow-hidden">
+              <div className="flex items-center justify-between px-3 py-2 bg-gray-50">
+                <span className="text-xs font-medium text-gray-600">{PLATFORM_LABELS[key]}</span>
+                <button
+                  onClick={() => handleCopy(key, platformContent[key]!)}
+                  className={`text-xs px-2 py-1 rounded ${
+                    copiedKey === key ? 'bg-green-100 text-green-700' : 'text-blue-600 hover:bg-blue-50'
+                  }`}>
+                  {copiedKey === key ? '已复制' : '复制'}
+                </button>
+              </div>
+              <pre className="p-3 text-xs overflow-auto max-h-48 whitespace-pre-wrap bg-white">
+                {platformContent[key]}
+              </pre>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
 
 export default function AIGeneratorTab() {
   // 单个资源
@@ -62,6 +127,7 @@ export default function AIGeneratorTab() {
   const [contentTemplate, setContentTemplate] = useState<'movieReview' | 'enhanced' | 'safe'>('movieReview')
   const [generateOnly, setGenerateOnly] = useState(false)
   const [autoPublishDelay, setAutoPublishDelay] = useState(0)
+  const [enableMultiPlatform, setEnableMultiPlatform] = useState(false)
 
   // 文件上传
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -140,7 +206,7 @@ export default function AIGeneratorTab() {
       const response = await fetch('/api/generate-content', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...authHeader() },
-        body: JSON.stringify({ resource, generateOnly, template: contentTemplate })
+        body: JSON.stringify({ resource, generateOnly, template: contentTemplate, enableMultiPlatform })
       })
       if (!response.ok) {
         const errorData = await response.json()
@@ -225,7 +291,7 @@ export default function AIGeneratorTab() {
         headers: { 'Content-Type': 'application/json', ...authHeader() },
         body: JSON.stringify({
           action: 'create',
-          settings: { generateOnly, contentTemplate, autoPublishDelay },
+          settings: { generateOnly, contentTemplate, autoPublishDelay, enableMultiPlatform },
           resources: batchResources,
         })
       })
@@ -368,7 +434,7 @@ export default function AIGeneratorTab() {
         </div>
 
         {/* 设置面板 */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-gray-50 rounded-lg">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 bg-gray-50 rounded-lg">
           <div>
             <label className="block text-xs font-medium text-gray-700 mb-1">内容模板</label>
             <select value={contentTemplate} onChange={(e) => setContentTemplate(e.target.value as 'movieReview' | 'enhanced' | 'safe')}
@@ -388,6 +454,13 @@ export default function AIGeneratorTab() {
             <label className="block text-xs font-medium text-gray-700 mb-1">发布间隔 (秒)</label>
             <input type="number" value={autoPublishDelay} onChange={(e) => setAutoPublishDelay(Number(e.target.value))}
               min="0" max="300" className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500" />
+          </div>
+          <div>
+            <label className="flex items-center text-xs font-medium text-gray-700 mt-4">
+              <input type="checkbox" checked={enableMultiPlatform} onChange={(e) => setEnableMultiPlatform(e.target.checked)} className="mr-2" />
+              生成多平台内容
+            </label>
+            <p className="text-xs text-gray-400 mt-1">知乎/公众号/小红书/头条，token消耗约x2</p>
           </div>
         </div>
       </div>
@@ -461,6 +534,9 @@ export default function AIGeneratorTab() {
                     <button onClick={handleManualPublish} disabled={isGenerating}
                       className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 disabled:bg-gray-400">{isGenerating ? '发布中...' : '立即发布'}</button>
                   </div>
+                )}
+                {result.platformContent && (
+                  <PlatformContentPanel platformContent={result.platformContent} />
                 )}
               </div>
             ) : (

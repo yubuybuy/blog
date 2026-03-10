@@ -18,6 +18,12 @@ export interface Post {
   markdownContent?: string // 新增：markdown原始内容
   author?: Author
   categories?: Category[]
+  platformContent?: {
+    zhihu?: string
+    wechat?: string
+    xiaohongshu?: string
+    toutiao?: string
+  }
 }
 
 export interface Author {
