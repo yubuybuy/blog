@@ -100,7 +100,8 @@ export default function AIGeneratorTab() {
     } catch { /* ignore */ }
   }
 
-  // 轮询服务端任务进度
+  // 轮询服务端任务进度 + 触发处理
+  const triggerRef = useRef(false) // 防止并发触发
   const startPolling = useCallback(() => {
     if (pollRef.current) clearInterval(pollRef.current)
     pollRef.current = setInterval(async () => {
@@ -110,10 +111,18 @@ export default function AIGeneratorTab() {
         if (data.exists) {
           setBatchResources(data.resources)
           setJobStatus(data.job)
-          // 检查是否已完成或停止
           if (data.job.pending === 0 || data.job.stopped) {
+            // 完成或停止
             setServerProcessing(false)
             if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null }
+          } else if (!data.job.processing && data.job.pending > 0 && !data.job.stopped && !triggerRef.current) {
+            // 服务端没在跑但还有待处理项 → 触发处理
+            triggerRef.current = true
+            fetch('/api/batch-jobs/process', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', ...authHeader() },
+            }).then(() => { triggerRef.current = false })
+              .catch(() => { triggerRef.current = false })
           }
         } else {
           setServerProcessing(false)

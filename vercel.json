@@ -17,6 +17,10 @@
     {
       "path": "/api/cron/baidu-push",
       "schedule": "0 2 * * *"
+    },
+    {
+      "path": "/api/batch-jobs/process?cron=1",
+      "schedule": "* * * * *"
     }
   ]
 }
