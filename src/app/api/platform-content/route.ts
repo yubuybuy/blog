@@ -7,7 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@sanity/client';
 import { authenticateRequest } from '@/lib/auth';
-import { CURRENT_CONFIG, PROMPT_TEMPLATES } from '@/lib/generation-config';
+import { CURRENT_CONFIG } from '@/lib/generation-config';
 
 const sanityClient = createClient({
   projectId: process.env.NEXT_PUBLIC_SANITY_PROJECT_ID!,
@@ -24,19 +24,16 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: '未授权' }, { status: 401 });
   }
 
-  const filter = request.nextUrl.searchParams.get('filter') || 'all'; // all | missing | has
+  const filter = request.nextUrl.searchParams.get('filter') || 'all';
   const limit = Math.min(Number(request.nextUrl.searchParams.get('limit')) || 50, 100);
   const postId = request.nextUrl.searchParams.get('postId');
 
-  // 获取单篇文章的 platformContent
   if (postId) {
     const post = await sanityClient.fetch(
       `*[_type == "post" && _id == $postId][0] {
         _id, title, excerpt, publishedAt,
         categories[]->{ title },
-        downloadLink,
-        markdownContent,
-        platformContent
+        downloadLink, markdownContent, platformContent
       }`,
       { postId }
     );
@@ -46,7 +43,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ post });
   }
 
-  // 列出文章
   let filterClause = '';
   if (filter === 'missing') {
     filterClause = '&& (!defined(platformContent) || platformContent == null)';
@@ -86,14 +82,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: '缺少文章ID' }, { status: 400 });
   }
 
-  // 获取文章信息
   const post = await sanityClient.fetch(
     `*[_type == "post" && _id == $postId][0] {
       _id, title, excerpt,
       categories[]->{ title },
-      downloadLink,
-      markdownContent,
-      platformContent
+      downloadLink, markdownContent, platformContent
     }`,
     { postId }
   );
@@ -102,17 +95,15 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: '文章不存在' }, { status: 404 });
   }
 
-  // 已有内容且未要求重新生成
   if (post.platformContent && !regenerate) {
     return NextResponse.json({
       success: true,
       skipped: true,
-      message: '该文章已有多平台内容，如需重新生成请设置 regenerate: true',
+      message: '该文章已有多平台内容',
       platformContent: post.platformContent,
     });
   }
 
-  // 构造资源信息
   const resourceInfo = {
     title: post.title,
     category: post.categories?.[0]?.title || '电影',
@@ -121,34 +112,44 @@ export async function POST(request: NextRequest) {
     downloadLink: post.downloadLink || '',
   };
 
-  // 生成多平台内容（仅平台内容，用精简 prompt）
-  const platformContent = await generatePlatformOnly(resourceInfo);
+  console.log('[platform-content] 开始生成:', resourceInfo.title);
 
-  if (!platformContent) {
-    return NextResponse.json({ error: 'AI 生成失败，请稍后重试' }, { status: 503 });
+  const result = await generatePlatformOnly(resourceInfo);
+
+  if (!result.success || !result.data) {
+    console.error('[platform-content] 生成失败:', result.error);
+    return NextResponse.json({
+      error: `AI 生成失败: ${result.error}`,
+      details: result.rawResponse?.substring(0, 500),
+    }, { status: 503 });
   }
 
-  // 存回 Sanity
-  await sanityClient.patch(postId).set({ platformContent }).commit();
+  await sanityClient.patch(postId).set({ platformContent: result.data }).commit();
+  console.log('[platform-content] 保存成功:', resourceInfo.title);
 
   return NextResponse.json({
     success: true,
     postId,
     title: post.title,
-    platformContent,
+    platformContent: result.data,
   });
 }
 
-// 仅生成多平台内容的精简 prompt（不重新生成主站文章）
+interface GenerateResult {
+  success: boolean;
+  data?: Record<string, string>;
+  error?: string;
+  rawResponse?: string;
+}
+
 async function generatePlatformOnly(resourceInfo: {
   title: string;
   category: string;
   tags: string[];
   description: string;
   downloadLink: string;
-}): Promise<Record<string, string> | null> {
-  const prompt = `
-你是一位专业影评人。请根据以下电影信息，为4个平台分别撰写推广文案。
+}): Promise<GenerateResult> {
+  const prompt = `你是一位专业影评人。请根据以下电影信息，为4个平台分别撰写推广文案。
 
 电影信息：
 - 电影名：${resourceInfo.title}
@@ -157,8 +158,8 @@ async function generatePlatformOnly(resourceInfo: {
 - 描述：${resourceInfo.description || '暂无'}
 
 要求：
-- 每个版本使用不同的角度和措辞
-- 保持核心事实一致
+- 每个版本使用不同的角度和措辞（不是截取或改写同一段）
+- 保持核心事实一致（导演、演员、年份等）
 - 每个版本末尾包含引流语："更多精彩影评和资源请访问 sswl.top"
 
 ### 知乎版（500-800字）
@@ -173,17 +174,20 @@ async function generatePlatformOnly(resourceInfo: {
 ### 百家号/头条版（400-600字）
 新闻资讯风格，客观中立，信息导向。
 
-请按 JSON 格式返回，换行用\\n：
+重要：请严格按以下JSON格式返回，不要添加任何额外文字。JSON字符串值内部的换行请用 \\n 表示：
+\`\`\`json
 {
-  "zhihu": "知乎版内容",
-  "wechat": "微信公众号版内容",
-  "xiaohongshu": "小红书版内容",
-  "toutiao": "百家号/头条版内容"
-}`;
+  "zhihu": "知乎版完整内容",
+  "wechat": "微信公众号版完整内容",
+  "xiaohongshu": "小红书版完整内容",
+  "toutiao": "百家号/头条版完整内容"
+}
+\`\`\``;
 
-  // 先试 Gemini
+  // 尝试 Gemini
   const geminiKey = process.env.GEMINI_API_KEY;
   if (geminiKey) {
+    console.log('[platform-content] 尝试 Gemini...');
     try {
       const resp = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`,
@@ -194,27 +198,43 @@ async function generatePlatformOnly(resourceInfo: {
             contents: [{ parts: [{ text: prompt }] }],
             generationConfig: {
               temperature: CURRENT_CONFIG.modelParams.gemini.temperature,
-              maxOutputTokens: CURRENT_CONFIG.modelParams.gemini.maxTokens,
+              maxOutputTokens: CURRENT_CONFIG.modelParams.gemini.maxTokens * 2,
               topP: CURRENT_CONFIG.modelParams.gemini.topP,
               topK: CURRENT_CONFIG.modelParams.gemini.topK,
             },
           }),
         }
       );
-      if (resp.ok) {
+
+      if (!resp.ok) {
+        const errText = await resp.text();
+        console.error('[platform-content] Gemini HTTP 错误:', resp.status, errText.substring(0, 300));
+      } else {
         const data = await resp.json();
         const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-        const parsed = extractJson(text);
-        if (parsed) return parsed;
+        console.log('[platform-content] Gemini 原始响应长度:', text?.length || 0);
+
+        if (text) {
+          const parsed = extractPlatformJson(text);
+          if (parsed) {
+            console.log('[platform-content] Gemini JSON 解析成功');
+            return { success: true, data: parsed };
+          }
+          console.error('[platform-content] Gemini JSON 解析失败，前300字:', text.substring(0, 300));
+          // 继续尝试 Cohere
+        }
       }
     } catch (e) {
-      console.error('Gemini platform-only 失败:', e);
+      console.error('[platform-content] Gemini 异常:', e instanceof Error ? e.message : e);
     }
+  } else {
+    console.log('[platform-content] 无 Gemini API Key');
   }
 
-  // 备选 Cohere
+  // 尝试 Cohere
   const cohereKey = process.env.COHERE_API_KEY;
   if (cohereKey) {
+    console.log('[platform-content] 尝试 Cohere...');
     try {
       const resp = await fetch('https://api.cohere.ai/v1/chat', {
         method: 'POST',
@@ -225,40 +245,151 @@ async function generatePlatformOnly(resourceInfo: {
         body: JSON.stringify({
           model: CURRENT_CONFIG.modelParams.cohere.model,
           message: prompt,
-          max_tokens: CURRENT_CONFIG.modelParams.cohere.maxTokens,
+          max_tokens: CURRENT_CONFIG.modelParams.cohere.maxTokens * 2,
           temperature: CURRENT_CONFIG.modelParams.cohere.temperature,
         }),
       });
-      if (resp.ok) {
-        const data = await resp.json();
-        const parsed = extractJson(data.text);
-        if (parsed) return parsed;
+
+      if (!resp.ok) {
+        const errText = await resp.text();
+        console.error('[platform-content] Cohere HTTP 错误:', resp.status, errText.substring(0, 300));
+        return { success: false, error: `Cohere HTTP ${resp.status}` };
+      }
+
+      const data = await resp.json();
+      const text = data.text;
+      console.log('[platform-content] Cohere 原始响应长度:', text?.length || 0);
+
+      if (text) {
+        const parsed = extractPlatformJson(text);
+        if (parsed) {
+          console.log('[platform-content] Cohere JSON 解析成功');
+          return { success: true, data: parsed };
+        }
+        console.error('[platform-content] Cohere JSON 解析失败，前300字:', text.substring(0, 300));
+        return { success: false, error: 'JSON 解析失败', rawResponse: text };
       }
     } catch (e) {
-      console.error('Cohere platform-only 失败:', e);
+      console.error('[platform-content] Cohere 异常:', e instanceof Error ? e.message : e);
+      return { success: false, error: `Cohere 异常: ${e instanceof Error ? e.message : '未知'}` };
     }
+  } else {
+    console.log('[platform-content] 无 Cohere API Key');
+  }
+
+  return { success: false, error: '所有 AI 服务都不可用（检查 API Key 配置）' };
+}
+
+// 健壮的 JSON 解析 — 针对多平台内容结构
+function extractPlatformJson(text: string): Record<string, string> | null {
+  if (!text) return null;
+
+  // 方法1: 提取 ```json 代码块
+  const codeBlock = text.match(/```json\s*([\s\S]*?)\s*```/);
+  const jsonCandidate = codeBlock ? codeBlock[1].trim() : null;
+
+  // 方法2: 直接匹配最外层 { ... }
+  const rawMatch = text.match(/\{[\s\S]*\}/);
+  const rawCandidate = rawMatch ? rawMatch[0].trim() : null;
+
+  // 对每个候选尝试多种解析策略
+  for (const candidate of [jsonCandidate, rawCandidate]) {
+    if (!candidate) continue;
+
+    // 策略1: 直接 parse（AI 返回了合法 JSON）
+    try {
+      const parsed = JSON.parse(candidate);
+      if (isValidPlatformContent(parsed)) return parsed;
+    } catch { /* 继续 */ }
+
+    // 策略2: 修复 JSON 字符串值中的真实换行符
+    // JSON 标准不允许字符串内有真实换行，需要替换为 \n
+    try {
+      const fixed = fixJsonNewlines(candidate);
+      const parsed = JSON.parse(fixed);
+      if (isValidPlatformContent(parsed)) return parsed;
+    } catch { /* 继续 */ }
+
+    // 策略3: 逐字段提取（最后手段）
+    const extracted = extractFieldsManually(candidate);
+    if (extracted && isValidPlatformContent(extracted)) return extracted;
   }
 
   return null;
 }
 
-// 从 AI 响应中提取 JSON
-function extractJson(text: string): Record<string, string> | null {
-  if (!text) return null;
-  try {
-    // 尝试代码块
-    const codeBlock = text.match(/```json\s*([\s\S]*?)\s*```/);
-    if (codeBlock) {
-      const cleaned = codeBlock[1].trim().replace(/\n/g, '\\n').replace(/\r/g, '\\r');
-      return JSON.parse(cleaned);
+// 修复 JSON 字符串值中的真实换行符
+function fixJsonNewlines(jsonStr: string): string {
+  // 逐字符扫描，只替换在引号内的换行符
+  let result = '';
+  let inString = false;
+  let escaped = false;
+
+  for (let i = 0; i < jsonStr.length; i++) {
+    const ch = jsonStr[i];
+
+    if (escaped) {
+      result += ch;
+      escaped = false;
+      continue;
     }
-    // 尝试直接匹配 JSON 对象
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      return JSON.parse(jsonMatch[0]);
+
+    if (ch === '\\') {
+      result += ch;
+      escaped = true;
+      continue;
     }
-  } catch {
-    // 忽略解析错误
+
+    if (ch === '"') {
+      inString = !inString;
+      result += ch;
+      continue;
+    }
+
+    if (inString && ch === '\n') {
+      result += '\\n';
+      continue;
+    }
+
+    if (inString && ch === '\r') {
+      continue; // 跳过 \r
+    }
+
+    result += ch;
   }
-  return null;
+
+  return result;
+}
+
+// 逐字段手动提取
+function extractFieldsManually(text: string): Record<string, string> | null {
+  const fields: Record<string, string> = {};
+  const keys = ['zhihu', 'wechat', 'xiaohongshu', 'toutiao'];
+
+  for (let i = 0; i < keys.length; i++) {
+    const key = keys[i];
+    const nextKey = keys[i + 1];
+
+    // 匹配 "key": "value" 或 "key": "value...直到下一个 key
+    const pattern = nextKey
+      ? new RegExp(`"${key}"\\s*:\\s*"([\\s\\S]*?)"\\s*(?:,\\s*"${nextKey}")`)
+      : new RegExp(`"${key}"\\s*:\\s*"([\\s\\S]*?)"\\s*\\}`);
+
+    const match = text.match(pattern);
+    if (match) {
+      fields[key] = match[1].replace(/\\n/g, '\n').replace(/\\"/g, '"');
+    }
+  }
+
+  return Object.keys(fields).length >= 2 ? fields : null;
+}
+
+function isValidPlatformContent(obj: unknown): obj is Record<string, string> {
+  if (!obj || typeof obj !== 'object') return false;
+  const o = obj as Record<string, unknown>;
+  // 至少有2个平台有内容
+  const validKeys = ['zhihu', 'wechat', 'xiaohongshu', 'toutiao'].filter(
+    k => typeof o[k] === 'string' && (o[k] as string).length > 20
+  );
+  return validKeys.length >= 2;
 }
