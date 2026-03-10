@@ -3,26 +3,26 @@
 export interface GenerationConfig {
   // 内容质量标准
   contentStandards: {
-    titleLength: { min: 10, max: 30 };           // 标题字数
-    excerptLength: { min: 50, max: 100 };        // 摘要字数
-    contentLength: { min: 300, max: 500 };       // 正文字数
-    tagsCount: { min: 3, max: 8 };               // 标签数量
+    titleLength: { min: number, max: number };
+    excerptLength: { min: number, max: number };
+    contentLength: { min: number, max: number };
+    tagsCount: { min: number, max: number };
   };
 
-  // AI模型参数（优化后）
+  // AI模型参数
   modelParams: {
     gemini: {
-      temperature: 0.8;        // 提高创意度，生成更丰富内容
-      maxTokens: 1500;         // 增加输出长度，支持更详细内容
-      topP: 0.9;               // 提高多样性，避免重复表达
-      topK: 40;                // 控制词汇选择范围
+      temperature: number;
+      maxTokens: number;
+      topP: number;
+      topK: number;
     };
     cohere: {
-      temperature: 0.75;       // 略微提高创意度
-      maxTokens: 2000;         // 大幅增加输出长度，确保JSON完整
-      model: 'command-a-03-2025'; // 使用新的可用模型
-      presencePenalty: 0.1;    // 减少重复内容
-      frequencyPenalty: 0.1;   // 增加词汇多样性
+      temperature: number;
+      maxTokens: number;
+      model: string;
+      presencePenalty: number;
+      frequencyPenalty: number;
     };
   };
 
@@ -39,20 +39,20 @@ export const CURRENT_CONFIG: GenerationConfig = {
   contentStandards: {
     titleLength: { min: 10, max: 30 },
     excerptLength: { min: 50, max: 100 },
-    contentLength: { min: 300, max: 500 },
+    contentLength: { min: 800, max: 1500 },
     tagsCount: { min: 3, max: 8 }
   },
 
   modelParams: {
     gemini: {
       temperature: 0.8,  // 提高创意度，生成更丰富内容
-      maxTokens: 1500,   // 增加输出长度，支持更详细内容
+      maxTokens: 3000,   // GEO优化需要更长内容
       topP: 0.9,         // 提高多样性，避免重复表达
       topK: 40           // 控制词汇选择范围
     },
     cohere: {
       temperature: 0.75, // 略微提高创意度
-      maxTokens: 2000,   // 大幅增加输出长度，确保JSON完整
+      maxTokens: 4000,   // GEO优化需要更长内容
       model: 'command-a-03-2025',
       presencePenalty: 0.1,  // 减少重复内容
       frequencyPenalty: 0.1  // 增加词汇多样性
@@ -83,9 +83,10 @@ export const CURRENT_CONFIG: GenerationConfig = {
 
 // 提示词模板库
 export const PROMPT_TEMPLATES = {
-  // 影评作者模板（新增 - 公众号影评风格）
+  // 影评模板（GEO 优化版 - 让 AI 搜索引擎更容易引用）
   movieReview: `
-你是一位公众号影评作者，请按照以下要求写一篇电影推荐文章：
+你是一位专业影评人和电影百科编辑，请为以下电影撰写一篇兼具专业性和可读性的深度介绍文章。
+文章需要对 AI 搜索引擎（如 ChatGPT、Perplexity）友好，包含结构化信息和可引用的事实段落。
 
 电影信息：
 - 电影名：{title}
@@ -94,42 +95,73 @@ export const PROMPT_TEMPLATES = {
 - 描述：{description}
 - 网盘链接：{downloadLink}
 
-目标：
-- 让读者了解电影价值并激发观看欲望
-- 提供有价值的观影建议和信息
-- 在文末自然引导用户点击网盘资源链接
+严格按照以下结构撰写 content 字段：
 
-写作要求：
-- 口语化、真诚、有温度，避免广告感
-- 严格按照以下结构撰写：
-  1. 开篇金句/台词 + 简短引子
-  2. 简洁剧情简介（150-200字，不剧透结局）
-  3. 电影亮点与看点（2-3个要点，用小标题或项目符号）
-  4. 观影建议（适合哪类观众，什么场景观看等）
-  5. 📁 资源获取
-     - 如果有有效的网盘链接：[获取观看资源]({downloadLink})
-     - 如果没有网盘链接：资源链接待更新，请关注后续发布
-  6. 📝 结语（用一句台词或金句收尾）
+## 电影简介
+用2-3句话概括这部电影是什么，包含导演、主演、上映年份、类型等关键信息。
+这段话要像百科全书一样权威、准确、可被 AI 直接引用。
 
-文章必须包含图片：
-- 在文章开头插入电影海报：![电影海报](IMAGE_PLACEHOLDER)
+## 影片信息
+用列表格式列出：
+- **导演**：xxx
+- **主演**：xxx、xxx、xxx
+- **上映年份**：xxxx年
+- **类型**：xxx / xxx
+- **IMDB评分**：x.x/10（如果知道）
+- **片长**：xxx分钟（如果知道）
 
-重要提醒：
-- 网盘资源分享部分，只使用提供的{downloadLink}，不要重复链接
-- 链接格式必须是：[点击获取高清资源]({downloadLink})
-- 不要在文章其他地方重复提到网盘链接
+## 剧情概述
+200-300字的剧情介绍，不剧透结局。客观叙述，让读者了解故事梗概。
 
-重要：JSON格式要求
-- content字段中的换行请使用\\n，不要使用真实换行符
-- 确保JSON格式严格正确，可以被JSON.parse()解析
+## 影片亮点与评价
+分析这部电影为什么值得看，从以下角度选择2-3个展开（每个角度用小标题）：
+- 导演手法与视觉风格
+- 演员表演
+- 剧本与叙事结构
+- 主题深度与社会意义
+- 配乐与技术成就
+每个角度要有具体论据，不要空泛评价。
 
-请按JSON格式返回：
+## 适合人群
+说明这部电影适合什么样的观众，什么场景下观看最佳。
+
+## 常见问题
+
+### {title}讲了什么故事？
+用2-3句话回答。
+
+### {title}值得看吗？
+用2-3句话给出推荐理由。
+
+### {title}适合什么人看？
+用1-2句话回答。
+
+## 资源获取
+如果有网盘链接：[获取高清观看资源]({downloadLink})
+如果没有：资源链接待更新，请关注后续发布。
+
+*本文仅供学习交流，请支持正版。*
+
+重要要求：
+- content 字段中的换行用\\n，不要用真实换行
+- 确保 JSON 格式严格正确
+- 文章总长度 800-1500 字
+- 语言专业但不枯燥，有深度但易读
+- 所有事实信息尽量准确（导演、演员、年份等）
+- 常见问题部分必须是完整的自然语言回答，不要省略
+
+请按 JSON 格式返回：
 {
-  "title": "吸引人的文章标题",
-  "excerpt": "50-80字的文章摘要",
-  "content": "完整的影评文章内容(markdown格式，换行用\\n)",
-  "tags": ["相关标签"],
-  "imagePrompt": "电影海报相关的图片描述"
+  "title": "电影名 + 有吸引力的副标题（如：肖申克的救赎：自由与希望的永恒寓言）",
+  "excerpt": "80-120字的专业摘要，包含电影核心信息和评价",
+  "content": "完整文章内容(markdown格式，换行用\\n)",
+  "tags": ["电影名", "导演名", "类型", "相关标签", "IMDB"],
+  "imagePrompt": "电影海报相关描述",
+  "faq": [
+    {"question": "{title}讲了什么故事？", "answer": "完整回答"},
+    {"question": "{title}值得看吗？", "answer": "完整回答"},
+    {"question": "{title}适合什么人看？", "answer": "完整回答"}
+  ]
 }`,
 
   // 真实博客模板（更自然的个人博客风格）

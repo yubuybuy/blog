@@ -7,6 +7,28 @@ interface JsonLdProps {
   breadcrumbs?: Array<{ name: string; url: string }>
 }
 
+// 从文章 markdown 内容中提取 FAQ（匹配 "### 问题\n回答" 格式）
+function extractFaqFromContent(content: string): Array<{ question: string; answer: string }> {
+  const faqs: Array<{ question: string; answer: string }> = []
+  const faqSection = content.split('## 常见问题')
+  if (faqSection.length < 2) return faqs
+
+  const faqText = faqSection[1].split('\n## ')[0] // 截取到下一个 H2
+  const questionBlocks = faqText.split('### ').filter(Boolean)
+
+  for (const block of questionBlocks) {
+    const lines = block.trim().split('\n').filter(l => l.trim())
+    if (lines.length >= 2) {
+      const question = lines[0].replace(/[？?]$/, '？').trim()
+      const answer = lines.slice(1).join(' ').trim()
+      if (question && answer) {
+        faqs.push({ question, answer })
+      }
+    }
+  }
+  return faqs
+}
+
 export default function JsonLd({ post, siteSettings, type, breadcrumbs }: JsonLdProps) {
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://www.sswl.top'
   const siteName = siteSettings?.title || 'USEIT库'
@@ -42,35 +64,60 @@ export default function JsonLd({ post, siteSettings, type, breadcrumbs }: JsonLd
 
       case 'article':
         if (!post) return null
-        return {
-          '@context': 'https://schema.org',
-          '@type': 'Article',
-          headline: post.title,
-          description: post.excerpt || post.title,
-          image: post.mainImageUrl || (post.mainImage ? `${baseUrl}/api/placeholder?text=${encodeURIComponent(post.title.slice(0, 10))}&width=1200&height=630` : undefined),
-          datePublished: post.publishedAt,
-          dateModified: post.publishedAt,
-          author: {
-            '@type': 'Person',
-            name: post.author?.name || '博主',
-            url: baseUrl
-          },
-          publisher: {
-            '@type': 'Organization',
-            name: siteName,
-            url: baseUrl,
-            logo: {
-              '@type': 'ImageObject',
-              url: `${baseUrl}/logo.png`
-            }
-          },
-          mainEntityOfPage: {
-            '@type': 'WebPage',
-            '@id': `${baseUrl}/posts/${post.slug.current}`
-          },
-          articleSection: post.categories?.map(cat => cat.title) || [],
-          keywords: post.categories?.map(cat => cat.title).join(', ') || ''
+
+        // 提取 FAQ
+        const markdownContent = post.markdownContent || ''
+        const faqs = extractFaqFromContent(markdownContent)
+
+        const schemas: Record<string, unknown>[] = [
+          {
+            '@context': 'https://schema.org',
+            '@type': 'Article',
+            headline: post.title,
+            description: post.excerpt || post.title,
+            image: post.mainImageUrl || (post.mainImage ? `${baseUrl}/api/placeholder?text=${encodeURIComponent(post.title.slice(0, 10))}&width=1200&height=630` : undefined),
+            datePublished: post.publishedAt,
+            dateModified: post.publishedAt,
+            author: {
+              '@type': 'Person',
+              name: post.author?.name || '博主',
+              url: baseUrl
+            },
+            publisher: {
+              '@type': 'Organization',
+              name: siteName,
+              url: baseUrl,
+              logo: {
+                '@type': 'ImageObject',
+                url: `${baseUrl}/logo.png`
+              }
+            },
+            mainEntityOfPage: {
+              '@type': 'WebPage',
+              '@id': `${baseUrl}/posts/${post.slug.current}`
+            },
+            articleSection: post.categories?.map(cat => cat.title) || [],
+            keywords: post.categories?.map(cat => cat.title).join(', ') || ''
+          }
+        ]
+
+        // 有 FAQ 时添加 FAQPage schema
+        if (faqs.length > 0) {
+          schemas.push({
+            '@context': 'https://schema.org',
+            '@type': 'FAQPage',
+            mainEntity: faqs.map(faq => ({
+              '@type': 'Question',
+              name: faq.question,
+              acceptedAnswer: {
+                '@type': 'Answer',
+                text: faq.answer,
+              }
+            }))
+          })
         }
+
+        return schemas
 
       case 'breadcrumb':
         if (!breadcrumbs) return null
@@ -92,6 +139,21 @@ export default function JsonLd({ post, siteSettings, type, breadcrumbs }: JsonLd
 
   const jsonLd = generateJsonLd()
   if (!jsonLd) return null
+
+  // article 类型返回多个 schema
+  if (Array.isArray(jsonLd)) {
+    return (
+      <>
+        {jsonLd.map((schema, i) => (
+          <script
+            key={i}
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+          />
+        ))}
+      </>
+    )
+  }
 
   return (
     <script
