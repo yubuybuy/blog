@@ -1,66 +1,15 @@
 /**
  * 服务端批量处理 API
  * 每次调用处理一个待处理项，处理完后自动触发下一个
- * 即使关闭浏览器也能继续在服务端运行
+ * 使用 Sanity 存储状态，确保 Vercel serverless 环境下可靠运行
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import fs from 'fs';
-import path from 'path';
 import { authenticateRequest } from '@/lib/auth';
+import { readJob, writeJob, getProgress, type BatchJob, type BatchItem } from '@/lib/batch-store';
 
 // Vercel Pro 最大运行时间
 export const maxDuration = 300;
-
-const BATCH_FILE = path.join(process.cwd(), 'batch-job.json');
-
-interface BatchItem {
-  id: string;
-  title: string;
-  category: string;
-  description?: string;
-  downloadLink?: string;
-  files: string[];
-  tags: string[];
-  status: 'pending' | 'generating' | 'completed' | 'skipped' | 'error';
-  result?: unknown;
-  error?: string;
-  skippedReason?: string;
-}
-
-interface BatchJob {
-  id: string;
-  token: string;
-  stopped: boolean;
-  processing: boolean;
-  settings: { generateOnly?: boolean; contentTemplate?: string; autoPublishDelay?: number };
-  resources: BatchItem[];
-}
-
-function readJob(): BatchJob | null {
-  if (!fs.existsSync(BATCH_FILE)) return null;
-  try {
-    return JSON.parse(fs.readFileSync(BATCH_FILE, 'utf8'));
-  } catch {
-    return null;
-  }
-}
-
-function writeJob(data: BatchJob) {
-  fs.writeFileSync(BATCH_FILE, JSON.stringify(data, null, 2));
-}
-
-function getProgress(job: BatchJob) {
-  const resources = job.resources || [];
-  return {
-    total: resources.length,
-    pending: resources.filter(r => r.status === 'pending').length,
-    generating: resources.filter(r => r.status === 'generating').length,
-    completed: resources.filter(r => r.status === 'completed').length,
-    skipped: resources.filter(r => r.status === 'skipped').length,
-    error: resources.filter(r => r.status === 'error').length,
-  };
-}
 
 // 带重试的 generate-content 调用
 async function generateWithRetry(
@@ -102,11 +51,11 @@ async function generateWithRetry(
 
       if (!response.ok) {
         const errData = await response.json().catch(() => ({}));
-        throw new Error(errData.error || `HTTP ${response.status}`);
+        throw new Error((errData as Record<string, string>).error || `HTTP ${response.status}`);
       }
 
       const data = await response.json();
-      return { success: true, data };
+      return { success: true, data: data as Record<string, unknown> };
     } catch (error) {
       if (attempt === maxRetries) {
         return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
@@ -122,7 +71,7 @@ async function generateWithRetry(
 export async function POST(request: NextRequest) {
   // 验证身份：JWT 或 batch token
   const batchToken = request.headers.get('x-batch-token');
-  const job = readJob();
+  const job = await readJob();
 
   if (!job) {
     return NextResponse.json({ error: '没有活跃的批量任务' }, { status: 404 });
@@ -133,9 +82,7 @@ export async function POST(request: NextRequest) {
     authenticated = true;
   } else {
     const auth = authenticateRequest(request);
-    if (auth.authenticated) {
-      authenticated = true;
-    }
+    if (auth.authenticated) authenticated = true;
   }
 
   if (!authenticated) {
@@ -145,14 +92,13 @@ export async function POST(request: NextRequest) {
   // 检查是否已停止
   if (job.stopped) {
     job.processing = false;
-    writeJob(job);
+    await writeJob(job);
     return NextResponse.json({ status: 'stopped', progress: getProgress(job) });
   }
 
   // 检查是否已在处理中（防止并发）
   const generating = job.resources.find(r => r.status === 'generating');
   if (generating) {
-    // 另一个处理正在进行中，跳过
     return NextResponse.json({ status: 'already_processing', progress: getProgress(job) });
   }
 
@@ -160,14 +106,14 @@ export async function POST(request: NextRequest) {
   const nextItem = job.resources.find(r => r.status === 'pending');
   if (!nextItem) {
     job.processing = false;
-    writeJob(job);
+    await writeJob(job);
     return NextResponse.json({ status: 'completed', progress: getProgress(job) });
   }
 
   // 标记为处理中
   job.processing = true;
   nextItem.status = 'generating';
-  writeJob(job);
+  await writeJob(job);
 
   const baseUrl = new URL(request.url).origin;
 
@@ -176,7 +122,7 @@ export async function POST(request: NextRequest) {
   const result = await generateWithRetry(baseUrl, nextItem, job);
 
   // 重新读取 job（可能被 stop 修改了）
-  const freshJob = readJob();
+  const freshJob = await readJob();
   if (!freshJob) {
     return NextResponse.json({ error: '任务已被删除' }, { status: 404 });
   }
@@ -197,7 +143,7 @@ export async function POST(request: NextRequest) {
       freshJob.resources[itemIdx].error = result.error || '未知错误';
     }
   }
-  writeJob(freshJob);
+  await writeJob(freshJob);
 
   // 检查是否还有待处理项且未被停止
   const pendingCount = freshJob.resources.filter(r => r.status === 'pending').length;
@@ -219,15 +165,14 @@ export async function POST(request: NextRequest) {
         'x-batch-token': freshJob.token,
         'User-Agent': 'BatchProcessor/1.0',
       },
-    }).catch(() => {
-      // 如果自触发失败，标记为非处理中，等待客户端恢复
-      console.log('[batch] self-trigger failed, waiting for client resume');
-      const j = readJob();
-      if (j) { j.processing = false; writeJob(j); }
+    }).catch(async () => {
+      console.log('[batch] self-trigger failed');
+      const j = await readJob();
+      if (j) { j.processing = false; await writeJob(j); }
     });
   } else {
     freshJob.processing = false;
-    writeJob(freshJob);
+    await writeJob(freshJob);
   }
 
   return NextResponse.json({
@@ -240,7 +185,7 @@ export async function POST(request: NextRequest) {
 // GET - 查询处理状态
 export async function GET(request: NextRequest) {
   const batchToken = request.headers.get('x-batch-token');
-  const job = readJob();
+  const job = await readJob();
 
   if (!job) {
     return NextResponse.json({ exists: false });

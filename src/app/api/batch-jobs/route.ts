@@ -1,27 +1,11 @@
 /**
  * 批量任务持久化 API
- * 保存/读取/清除批量生成任务进度，支持断点续传
+ * 使用 Sanity 存储，确保在 Vercel serverless 环境下跨函数共享状态
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import fs from 'fs';
-import path from 'path';
 import { authenticateRequest } from '@/lib/auth';
-
-const BATCH_FILE = path.join(process.cwd(), 'batch-job.json');
-
-function readJob() {
-  if (!fs.existsSync(BATCH_FILE)) return null;
-  try {
-    return JSON.parse(fs.readFileSync(BATCH_FILE, 'utf8'));
-  } catch {
-    return null;
-  }
-}
-
-function writeJob(data: unknown) {
-  fs.writeFileSync(BATCH_FILE, JSON.stringify(data, null, 2));
-}
+import { readJob, writeJob, deleteJob } from '@/lib/batch-store';
 
 // GET - 读取当前批量任务状态
 export async function GET(request: NextRequest) {
@@ -30,7 +14,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: '未授权' }, { status: 401 });
   }
 
-  const job = readJob();
+  const job = await readJob();
   if (!job) {
     return NextResponse.json({ exists: false });
   }
@@ -39,16 +23,16 @@ export async function GET(request: NextRequest) {
   return NextResponse.json({
     exists: true,
     job: {
-      id: job.id,
+      id: 'current',
       createdAt: job.createdAt,
       settings: job.settings,
       stopped: job.stopped || false,
       processing: job.processing || false,
       total: resources.length,
-      pending: resources.filter((r: { status: string }) => r.status === 'pending').length,
-      completed: resources.filter((r: { status: string }) => r.status === 'completed').length,
-      error: resources.filter((r: { status: string }) => r.status === 'error').length,
-      skipped: resources.filter((r: { status: string }) => r.status === 'skipped').length,
+      pending: resources.filter(r => r.status === 'pending').length,
+      completed: resources.filter(r => r.status === 'completed').length,
+      error: resources.filter(r => r.status === 'error').length,
+      skipped: resources.filter(r => r.status === 'skipped').length,
     },
     resources,
   });
@@ -65,30 +49,27 @@ export async function POST(request: NextRequest) {
   const { action } = body;
 
   if (action === 'create') {
-    // 从请求头获取 JWT token 并保存（用于服务端自调用）
     const authHeader = request.headers.get('authorization') || '';
     const token = authHeader.replace('Bearer ', '');
 
-    const job = {
-      id: `batch-${Date.now()}`,
-      createdAt: new Date().toISOString(),
-      token, // 存储 token 用于服务端处理链自调用
+    await writeJob({
+      token,
       stopped: false,
       processing: false,
+      createdAt: new Date().toISOString(),
       settings: body.settings || {},
       resources: body.resources || [],
-    };
-    writeJob(job);
-    return NextResponse.json({ success: true, id: job.id });
+    });
+    return NextResponse.json({ success: true, id: 'current' });
   }
 
   if (action === 'update-item') {
-    const job = readJob();
+    const job = await readJob();
     if (!job) {
       return NextResponse.json({ error: '无活跃任务' }, { status: 404 });
     }
     const { itemId, status, result, error, skippedReason } = body;
-    const idx = job.resources.findIndex((r: { id: string }) => r.id === itemId);
+    const idx = job.resources.findIndex(r => r.id === itemId);
     if (idx === -1) {
       return NextResponse.json({ error: '资源不存在' }, { status: 404 });
     }
@@ -96,40 +77,38 @@ export async function POST(request: NextRequest) {
     if (result) job.resources[idx].result = result;
     if (error) job.resources[idx].error = error;
     if (skippedReason) job.resources[idx].skippedReason = skippedReason;
-    writeJob(job);
+    await writeJob(job);
     return NextResponse.json({ success: true });
   }
 
   if (action === 'stop') {
-    const job = readJob();
+    const job = await readJob();
     if (!job) {
       return NextResponse.json({ error: '无活跃任务' }, { status: 404 });
     }
     job.stopped = true;
     job.processing = false;
-    writeJob(job);
+    await writeJob(job);
     return NextResponse.json({ success: true, message: '已发送停止信号' });
   }
 
   if (action === 'resume') {
-    const job = readJob();
+    const job = await readJob();
     if (!job) {
       return NextResponse.json({ error: '无活跃任务' }, { status: 404 });
     }
-    // 更新 token（可能已过期）
     const authHeader = request.headers.get('authorization') || '';
     job.token = authHeader.replace('Bearer ', '');
     job.stopped = false;
-    // 将 generating 状态重置为 pending（之前中断的）
     for (const r of job.resources) {
       if (r.status === 'generating') r.status = 'pending';
     }
-    writeJob(job);
+    await writeJob(job);
     return NextResponse.json({ success: true });
   }
 
   if (action === 'retry-errors') {
-    const job = readJob();
+    const job = await readJob();
     if (!job) {
       return NextResponse.json({ error: '无活跃任务' }, { status: 404 });
     }
@@ -142,7 +121,7 @@ export async function POST(request: NextRequest) {
       }
     }
     job.stopped = false;
-    writeJob(job);
+    await writeJob(job);
     return NextResponse.json({ success: true, resetCount: count });
   }
 
@@ -156,8 +135,6 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ error: '未授权' }, { status: 401 });
   }
 
-  if (fs.existsSync(BATCH_FILE)) {
-    fs.unlinkSync(BATCH_FILE);
-  }
+  await deleteJob();
   return NextResponse.json({ success: true });
 }
