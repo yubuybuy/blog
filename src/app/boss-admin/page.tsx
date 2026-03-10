@@ -204,10 +204,23 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
 // 主组件
 export default function AdminPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [checking, setChecking] = useState(true)
 
-  // 设置页面标题
+  // 页面加载时检查已有 token 是否有效
   useEffect(() => {
     document.title = '📊 BOSS管理中心 - 网盘博客管理系统'
+    const token = localStorage.getItem('admin-token')
+    if (token) {
+      // 用一个轻量 API 验证 token 是否还有效
+      fetch('/api/generate-content', {
+        method: 'GET',
+        headers: { 'Authorization': `Bearer ${token}` }
+      }).then(resp => {
+        if (resp.ok) setIsAuthenticated(true)
+      }).catch(() => {}).finally(() => setChecking(false))
+    } else {
+      setChecking(false)
+    }
   }, [])
 
   const handleLogin = () => {
@@ -217,6 +230,14 @@ export default function AdminPage() {
   const handleLogout = () => {
     setIsAuthenticated(false)
     localStorage.removeItem('admin-token')
+  }
+
+  if (checking) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-100 flex items-center justify-center">
+        <p className="text-gray-600">验证中...</p>
+      </div>
+    )
   }
 
   if (!isAuthenticated) {
