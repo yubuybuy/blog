@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
   }
 
   const filter = request.nextUrl.searchParams.get('filter') || 'all';
-  const limit = Math.min(Number(request.nextUrl.searchParams.get('limit')) || 50, 100);
+  const limit = Math.min(Number(request.nextUrl.searchParams.get('limit')) || 500, 500);
   const postId = request.nextUrl.searchParams.get('postId');
 
   if (postId) {

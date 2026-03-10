@@ -53,7 +53,7 @@ export default function PlatformContentTab() {
     setLoading(true)
     try {
       const currentFilter = f || filter
-      const resp = await fetch(`/api/platform-content?filter=${currentFilter}&limit=50`, {
+      const resp = await fetch(`/api/platform-content?filter=${currentFilter}&limit=500`, {
         headers: authHeader()
       })
       const data = await resp.json()
