@@ -27,8 +27,18 @@ interface GeneratedContent {
   imagePrompt: string;
 }
 
-const MAX_RETRIES = 3;
-const RETRY_DELAY_MS = 5000;
+interface JobStatus {
+  id: string;
+  stopped: boolean;
+  processing: boolean;
+  total: number;
+  pending: number;
+  completed: number;
+  error: number;
+  skipped: number;
+}
+
+const POLL_INTERVAL = 5000;
 
 export default function AIGeneratorTab() {
   // 单个资源
@@ -39,14 +49,14 @@ export default function AIGeneratorTab() {
   // 批量
   const [batchResources, setBatchResources] = useState<BatchResourceInfo[]>([])
   const [batchMode, setBatchMode] = useState(false)
-  const [batchJobId, setBatchJobId] = useState<string | null>(null)
+  const [jobStatus, setJobStatus] = useState<JobStatus | null>(null)
+  const [serverProcessing, setServerProcessing] = useState(false)
 
-  // 控制
+  // 单个生成控制
   const [isGenerating, setIsGenerating] = useState(false)
   const [result, setResult] = useState<GeneratedContent | null>(null)
   const [aiMethod, setAiMethod] = useState<string>('')
   const [processingTime, setProcessingTime] = useState<number>(0)
-  const stopRef = useRef(false)
 
   // 设置
   const [contentTemplate, setContentTemplate] = useState<'movieReview' | 'enhanced' | 'safe'>('movieReview')
@@ -59,76 +69,59 @@ export default function AIGeneratorTab() {
   const [startRow, setStartRow] = useState(1)
   const [endRow, setEndRow] = useState(0)
 
-  const authHeader = () => ({
+  // 轮询定时器
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  const authHeader = useCallback(() => ({
     'Authorization': `Bearer ${localStorage.getItem('admin-token')}`
-  })
+  }), [])
 
   // 页面加载时检查是否有未完成的任务
   useEffect(() => {
     checkExistingJob()
+    return () => { if (pollRef.current) clearInterval(pollRef.current) }
   }, [])
 
   const checkExistingJob = async () => {
     try {
       const resp = await fetch('/api/batch-jobs', { headers: authHeader() })
       const data = await resp.json()
-      if (data.exists && data.job.pending > 0) {
+      if (data.exists) {
         setBatchMode(true)
         setBatchResources(data.resources)
-        setBatchJobId(data.job.id)
+        setJobStatus(data.job)
         setUploadInfo({ totalRows: data.job.total, fileName: '(已保存的任务)' })
+        // 如果服务端正在处理，开始轮询
+        if (data.job.processing && !data.job.stopped) {
+          setServerProcessing(true)
+          startPolling()
+        }
       }
     } catch { /* ignore */ }
   }
 
-  // 保存单个资源状态到服务器
-  const saveItemStatus = async (itemId: string, status: string, extra?: Record<string, unknown>) => {
-    try {
-      await fetch('/api/batch-jobs', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...authHeader() },
-        body: JSON.stringify({ action: 'update-item', itemId, status, ...extra })
-      })
-    } catch { /* best effort */ }
-  }
-
-  // 带重试的生成请求
-  const generateWithRetry = async (res: BatchResourceInfo) => {
-    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+  // 轮询服务端任务进度
+  const startPolling = useCallback(() => {
+    if (pollRef.current) clearInterval(pollRef.current)
+    pollRef.current = setInterval(async () => {
       try {
-        const response = await fetch('/api/generate-content', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', ...authHeader() },
-          body: JSON.stringify({
-            resource: {
-              title: res.title, category: res.category,
-              description: res.description, downloadLink: res.downloadLink,
-              files: res.files, tags: res.tags
-            },
-            generateOnly,
-            template: contentTemplate
-          })
-        })
-
-        if (response.status === 503 && attempt < MAX_RETRIES) {
-          console.log(`503 错误，${RETRY_DELAY_MS / 1000}秒后重试 (${attempt}/${MAX_RETRIES}): ${res.title}`)
-          await new Promise(r => setTimeout(r, RETRY_DELAY_MS))
-          continue
+        const resp = await fetch('/api/batch-jobs', { headers: authHeader() })
+        const data = await resp.json()
+        if (data.exists) {
+          setBatchResources(data.resources)
+          setJobStatus(data.job)
+          // 检查是否已完成或停止
+          if (data.job.pending === 0 || data.job.stopped) {
+            setServerProcessing(false)
+            if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null }
+          }
+        } else {
+          setServerProcessing(false)
+          if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null }
         }
-
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`)
-        }
-
-        return await response.json()
-      } catch (error) {
-        if (attempt === MAX_RETRIES) throw error
-        console.log(`请求失败，重试 (${attempt}/${MAX_RETRIES}): ${res.title}`)
-        await new Promise(r => setTimeout(r, RETRY_DELAY_MS))
-      }
-    }
-    throw new Error('重试次数已用完')
-  }
+      } catch { /* ignore polling errors */ }
+    }, POLL_INTERVAL)
+  }, [authHeader])
 
   // 单个资源生成
   const handleGenerate = async () => {
@@ -147,14 +140,14 @@ export default function AIGeneratorTab() {
       const data = await response.json()
       if (data.success) {
         if (data.skipped) {
-          alert(`⏭️ 该资源已发布过，已自动跳过。`)
+          alert('该资源已发布过，已自动跳过。')
           return
         }
         setResult(data.content); setAiMethod(data.method || 'unknown'); setProcessingTime(data.processingTime || 0)
         const aiName = data.method === 'gemini' ? 'Google Gemini' : data.method === 'cohere' ? 'Cohere AI' : 'AI'
         alert(generateOnly
-          ? `✅ 内容生成完成！\n🤖 ${aiName}\n⏱️ ${data.processingTime || 0}ms\n\n请检查后手动发布`
-          : `✅ 内容生成并发布成功！\n🤖 ${aiName}\n⏱️ ${data.processingTime || 0}ms`)
+          ? `内容生成完成！\n${aiName}\n${data.processingTime || 0}ms\n\n请检查后手动发布`
+          : `内容生成并发布成功！\n${aiName}\n${data.processingTime || 0}ms`)
       } else throw new Error(data.error || '生成失败')
     } catch (error) {
       alert(`生成失败: ${error instanceof Error ? error.message : '未知错误'}`)
@@ -171,9 +164,9 @@ export default function AIGeneratorTab() {
         headers: { 'Content-Type': 'application/json', ...authHeader() },
         body: JSON.stringify({ resource, generateOnly: false, template: contentTemplate, publishPregenerated: true, content: result })
       })
-      if (!response.ok) throw new Error((await response.json()).error || `HTTP error`)
+      if (!response.ok) throw new Error((await response.json()).error || 'HTTP error')
       const data = await response.json()
-      if (data.success) { alert('✅ 内容发布成功！'); setResult(null); setResource({ title: '', category: '', files: [], tags: [], description: '', downloadLink: '' }) }
+      if (data.success) { alert('内容发布成功！'); setResult(null); setResource({ title: '', category: '', files: [], tags: [], description: '', downloadLink: '' }) }
       else throw new Error(data.error || '发布失败')
     } catch (error) { alert(`发布失败: ${error instanceof Error ? error.message : '未知错误'}`) }
     finally { setIsGenerating(false) }
@@ -199,6 +192,7 @@ export default function AIGeneratorTab() {
       if (data.success) {
         setBatchResources(data.resources)
         setUploadInfo({ totalRows: data.totalRows, fileName: file.name })
+        setJobStatus(null)
         alert(`成功解析 ${data.resources.length} 条资源（共 ${data.totalRows} 行，选择第 ${data.selectedRange.start}-${data.selectedRange.end} 行）`)
       } else {
         alert(`解析失败: ${data.error}`)
@@ -207,25 +201,16 @@ export default function AIGeneratorTab() {
       alert(`上传失败: ${error instanceof Error ? error.message : '未知错误'}`)
     }
 
-    // 重置 file input
     if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
-  // 重新解析（更换行范围后）
-  const handleReparse = () => {
-    fileInputRef.current?.click()
-  }
-
-  // 批量生成
-  const handleBatchGenerate = useCallback(async () => {
+  // 开始服务端批量生成
+  const handleStartServerProcessing = async () => {
     const pending = batchResources.filter(r => r.status === 'pending')
     if (pending.length === 0) { alert('没有待处理的资源'); return }
 
-    stopRef.current = false
-    setIsGenerating(true)
-
-    // 保存任务到服务器
     try {
+      // 1. 创建/保存任务到服务器（包含 auth token）
       await fetch('/api/batch-jobs', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...authHeader() },
@@ -235,67 +220,94 @@ export default function AIGeneratorTab() {
           resources: batchResources,
         })
       })
-    } catch { /* best effort */ }
 
-    for (let i = 0; i < batchResources.length; i++) {
-      if (stopRef.current) break
+      // 2. 触发服务端处理
+      setServerProcessing(true)
+      fetch('/api/batch-jobs/process', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeader() },
+      }).catch(() => {})
 
-      const res = batchResources[i]
-      if (res.status !== 'pending') continue
-
-      // 标记为生成中
-      setBatchResources(prev => prev.map(r => r.id === res.id ? { ...r, status: 'generating' } : r))
-
-      try {
-        const data = await generateWithRetry(res)
-
-        if (data.success) {
-          if (data.skipped) {
-            setBatchResources(prev => prev.map(r =>
-              r.id === res.id ? { ...r, status: 'skipped', skippedReason: data.message || '已存在' } : r
-            ))
-            await saveItemStatus(res.id, 'skipped', { skippedReason: data.message })
-          } else {
-            setBatchResources(prev => prev.map(r =>
-              r.id === res.id ? { ...r, status: 'completed', result: data.content } : r
-            ))
-            await saveItemStatus(res.id, 'completed', { result: data.content })
-          }
-        } else {
-          throw new Error(data.error || '生成失败')
-        }
-
-        // 延迟
-        if (autoPublishDelay > 0 && i < batchResources.length - 1) {
-          await new Promise(r => setTimeout(r, autoPublishDelay * 1000))
-        }
-      } catch (error) {
-        const errMsg = error instanceof Error ? error.message : '未知错误'
-        setBatchResources(prev => prev.map(r =>
-          r.id === res.id ? { ...r, status: 'error', error: errMsg } : r
-        ))
-        await saveItemStatus(res.id, 'error', { error: errMsg })
-      }
+      // 3. 开始轮询进度
+      startPolling()
+    } catch (error) {
+      alert(`启动失败: ${error instanceof Error ? error.message : '未知错误'}`)
+      setServerProcessing(false)
     }
+  }
 
-    setIsGenerating(false)
-    if (!stopRef.current) alert('批量生成完成！')
-  }, [batchResources, generateOnly, contentTemplate, autoPublishDelay])
+  // 恢复处理（重新打开页面后）
+  const handleResume = async () => {
+    try {
+      // 更新 token 并取消停止状态
+      await fetch('/api/batch-jobs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeader() },
+        body: JSON.stringify({ action: 'resume' })
+      })
 
-  const handleStop = () => { stopRef.current = true }
+      setServerProcessing(true)
+
+      // 触发服务端处理
+      fetch('/api/batch-jobs/process', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeader() },
+      }).catch(() => {})
+
+      startPolling()
+    } catch (error) {
+      alert(`恢复失败: ${error instanceof Error ? error.message : '未知错误'}`)
+    }
+  }
+
+  // 停止处理
+  const handleStop = async () => {
+    try {
+      await fetch('/api/batch-jobs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeader() },
+        body: JSON.stringify({ action: 'stop' })
+      })
+      setServerProcessing(false)
+      if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null }
+      // 刷新一次状态
+      const resp = await fetch('/api/batch-jobs', { headers: authHeader() })
+      const data = await resp.json()
+      if (data.exists) { setBatchResources(data.resources); setJobStatus(data.job) }
+    } catch (error) {
+      alert(`停止失败: ${error instanceof Error ? error.message : '未知错误'}`)
+    }
+  }
 
   // 重试失败项
-  const handleRetryErrors = () => {
-    setBatchResources(prev => prev.map(r =>
-      r.status === 'error' ? { ...r, status: 'pending', error: undefined } : r
-    ))
+  const handleRetryErrors = async () => {
+    try {
+      const resp = await fetch('/api/batch-jobs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeader() },
+        body: JSON.stringify({ action: 'retry-errors' })
+      })
+      const data = await resp.json()
+      if (data.success) {
+        alert(`已重置 ${data.resetCount} 个失败项`)
+        // 刷新状态
+        const statusResp = await fetch('/api/batch-jobs', { headers: authHeader() })
+        const statusData = await statusResp.json()
+        if (statusData.exists) { setBatchResources(statusData.resources); setJobStatus(statusData.job) }
+      }
+    } catch { /* ignore */ }
   }
 
   // 清除任务
   const handleClearJob = async () => {
+    if (serverProcessing) {
+      if (!confirm('服务端正在处理中，确定要清除任务吗？')) return
+      await handleStop()
+    }
     setBatchResources([])
-    setBatchJobId(null)
+    setJobStatus(null)
     setUploadInfo(null)
+    setServerProcessing(false)
     try {
       await fetch('/api/batch-jobs', { method: 'DELETE', headers: authHeader() })
     } catch { /* ignore */ }
@@ -306,13 +318,24 @@ export default function AIGeneratorTab() {
   }
 
   // 统计
-  const stats = {
+  const stats = jobStatus ? {
+    pending: jobStatus.pending,
+    generating: batchResources.filter(r => r.status === 'generating').length,
+    completed: jobStatus.completed,
+    skipped: jobStatus.skipped,
+    error: jobStatus.error,
+    total: jobStatus.total,
+  } : {
     pending: batchResources.filter(r => r.status === 'pending').length,
     generating: batchResources.filter(r => r.status === 'generating').length,
     completed: batchResources.filter(r => r.status === 'completed').length,
     skipped: batchResources.filter(r => r.status === 'skipped').length,
     error: batchResources.filter(r => r.status === 'error').length,
+    total: batchResources.length,
   }
+
+  const hasPending = stats.pending > 0
+  const hasJob = batchResources.length > 0
 
   return (
     <div className="p-6">
@@ -320,17 +343,17 @@ export default function AIGeneratorTab() {
       <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
         <div className="flex justify-between items-center mb-6">
           <div>
-            <h2 className="text-xl font-bold text-gray-800">🤖 AI内容生成器</h2>
-            <p className="text-gray-600 mt-1">Gemini + Cohere · 支持 Excel/CSV 批量导入 · 断点续传</p>
+            <h2 className="text-xl font-bold text-gray-800">AI内容生成器</h2>
+            <p className="text-gray-600 mt-1">Gemini + Cohere · Excel/CSV 批量导入 · 服务端后台处理</p>
           </div>
           <div className="flex items-center gap-2">
             <button onClick={() => setBatchMode(false)}
               className={`px-4 py-2 rounded-lg text-sm ${!batchMode ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}>
-              🎯 单个生成
+              单个生成
             </button>
             <button onClick={() => setBatchMode(true)}
               className={`px-4 py-2 rounded-lg text-sm ${batchMode ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}>
-              📦 批量生成
+              批量生成 {hasJob && stats.pending > 0 ? `(${stats.pending})` : ''}
             </button>
           </div>
         </div>
@@ -341,9 +364,9 @@ export default function AIGeneratorTab() {
             <label className="block text-xs font-medium text-gray-700 mb-1">内容模板</label>
             <select value={contentTemplate} onChange={(e) => setContentTemplate(e.target.value as 'movieReview' | 'enhanced' | 'safe')}
               className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500">
-              <option value="movieReview">🎬 影评风格</option>
-              <option value="enhanced">✨ 增强模板</option>
-              <option value="safe">🔒 安全模板</option>
+              <option value="movieReview">影评风格</option>
+              <option value="enhanced">增强模板</option>
+              <option value="safe">安全模板</option>
             </select>
           </div>
           <div>
@@ -364,7 +387,7 @@ export default function AIGeneratorTab() {
         /* ========== 单个资源生成 ========== */
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="bg-white rounded-lg shadow-sm p-6">
-            <h3 className="text-lg font-semibold mb-4">📝 资源信息</h3>
+            <h3 className="text-lg font-semibold mb-4">资源信息</h3>
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">资源标题 *</label>
@@ -376,12 +399,12 @@ export default function AIGeneratorTab() {
                 <select value={resource.category} onChange={(e) => setResource({ ...resource, category: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500">
                   <option value="">选择分类</option>
-                  <option value="电影">🎬 电影</option>
-                  <option value="软件">💻 软件</option>
-                  <option value="游戏">🎮 游戏</option>
-                  <option value="音乐">🎵 音乐</option>
-                  <option value="教程">📚 教程</option>
-                  <option value="其他">📁 其他</option>
+                  <option value="电影">电影</option>
+                  <option value="软件">软件</option>
+                  <option value="游戏">游戏</option>
+                  <option value="音乐">音乐</option>
+                  <option value="教程">教程</option>
+                  <option value="其他">其他</option>
                 </select>
               </div>
               <div>
@@ -402,19 +425,19 @@ export default function AIGeneratorTab() {
               <div className="pt-4">
                 <button onClick={handleGenerate} disabled={isGenerating || !resource.title.trim()}
                   className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 transition-colors font-medium">
-                  {isGenerating ? '🔄 生成中...' : '🚀 生成内容'}
+                  {isGenerating ? '生成中...' : '生成内容'}
                 </button>
               </div>
             </div>
           </div>
           <div className="bg-white rounded-lg shadow-sm p-6">
-            <h3 className="text-lg font-semibold mb-4">📄 生成结果</h3>
+            <h3 className="text-lg font-semibold mb-4">生成结果</h3>
             {result ? (
               <div className="space-y-4">
                 <div className="bg-green-50 border border-green-200 rounded-lg p-4">
                   <div className="flex items-center justify-between text-sm">
-                    <span className="font-medium text-green-800">🤖 {aiMethod === 'gemini' ? 'Gemini' : aiMethod === 'cohere' ? 'Cohere' : 'AI'}</span>
-                    <span className="text-green-700">⏱️ {processingTime}ms</span>
+                    <span className="font-medium text-green-800">{aiMethod === 'gemini' ? 'Gemini' : aiMethod === 'cohere' ? 'Cohere' : 'AI'}</span>
+                    <span className="text-green-700">{processingTime}ms</span>
                   </div>
                 </div>
                 <div><label className="block text-sm font-medium text-gray-700 mb-1">标题</label><div className="p-2 bg-gray-50 rounded text-sm">{result.title}</div></div>
@@ -425,9 +448,9 @@ export default function AIGeneratorTab() {
                 </div>
                 {generateOnly && (
                   <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-center justify-between">
-                    <div><h4 className="text-sm font-medium text-blue-800">📝 预览完成</h4><p className="text-xs text-blue-600">检查后手动发布</p></div>
+                    <div><h4 className="text-sm font-medium text-blue-800">预览完成</h4><p className="text-xs text-blue-600">检查后手动发布</p></div>
                     <button onClick={handleManualPublish} disabled={isGenerating}
-                      className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 disabled:bg-gray-400">{isGenerating ? '🔄 发布中...' : '📤 立即发布'}</button>
+                      className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 disabled:bg-gray-400">{isGenerating ? '发布中...' : '立即发布'}</button>
                   </div>
                 )}
               </div>
@@ -439,9 +462,41 @@ export default function AIGeneratorTab() {
       ) : (
         /* ========== 批量生成模式 ========== */
         <div className="space-y-6">
+          {/* 服务端处理状态提示 */}
+          {serverProcessing && (
+            <div className="bg-green-50 border border-green-300 rounded-lg p-4 flex items-center justify-between">
+              <div>
+                <h4 className="text-sm font-bold text-green-800">服务端正在后台处理中</h4>
+                <p className="text-xs text-green-700 mt-1">
+                  你可以安全地关闭这个页面，处理不会中断。每 {POLL_INTERVAL / 1000} 秒自动刷新进度。
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="inline-block w-3 h-3 bg-green-500 rounded-full animate-pulse"></span>
+                <span className="text-sm text-green-700 font-medium">运行中</span>
+              </div>
+            </div>
+          )}
+
+          {/* 已有任务恢复提示 */}
+          {hasJob && !serverProcessing && hasPending && (
+            <div className="bg-yellow-50 border border-yellow-300 rounded-lg p-4 flex items-center justify-between">
+              <div>
+                <h4 className="text-sm font-bold text-yellow-800">发现未完成的任务</h4>
+                <p className="text-xs text-yellow-700 mt-1">
+                  {stats.completed + stats.skipped} 已完成，{stats.pending} 待处理，{stats.error} 失败
+                </p>
+              </div>
+              <button onClick={handleResume}
+                className="px-4 py-2 bg-yellow-600 text-white text-sm rounded hover:bg-yellow-700">
+                继续处理
+              </button>
+            </div>
+          )}
+
           {/* 导入面板 */}
           <div className="bg-white rounded-lg shadow-sm p-6">
-            <h3 className="text-lg font-semibold mb-4">📦 批量导入与生成</h3>
+            <h3 className="text-lg font-semibold mb-4">批量导入与生成</h3>
 
             {/* 文件上传 + 行范围 */}
             <div className="flex flex-wrap items-end gap-4 mb-4">
@@ -457,9 +512,9 @@ export default function AIGeneratorTab() {
               </div>
 
               <input ref={fileInputRef} type="file" accept=".csv,.xlsx,.xls" onChange={handleFileUpload} className="hidden" />
-              <button onClick={() => fileInputRef.current?.click()}
-                className="px-4 py-2 bg-green-600 text-white text-sm rounded hover:bg-green-700">
-                📂 导入文件 (Excel/CSV)
+              <button onClick={() => fileInputRef.current?.click()} disabled={serverProcessing}
+                className="px-4 py-2 bg-green-600 text-white text-sm rounded hover:bg-green-700 disabled:bg-gray-400">
+                导入文件 (Excel/CSV)
               </button>
 
               {uploadInfo && (
@@ -471,36 +526,36 @@ export default function AIGeneratorTab() {
 
             {/* 操作按钮 */}
             <div className="flex flex-wrap gap-2">
-              {!isGenerating ? (
-                <button onClick={handleBatchGenerate} disabled={batchResources.length === 0}
+              {!serverProcessing ? (
+                <button onClick={handleStartServerProcessing} disabled={!hasPending}
                   className="px-6 py-2 bg-purple-600 text-white text-sm rounded hover:bg-purple-700 disabled:bg-gray-400">
-                  🚀 开始批量生成 ({stats.pending} 待处理)
+                  开始后台生成 ({stats.pending} 待处理)
                 </button>
               ) : (
                 <button onClick={handleStop}
                   className="px-6 py-2 bg-red-600 text-white text-sm rounded hover:bg-red-700">
-                  ⏹️ 停止生成
+                  停止生成
                 </button>
               )}
 
-              {stats.error > 0 && !isGenerating && (
+              {stats.error > 0 && !serverProcessing && (
                 <button onClick={handleRetryErrors}
                   className="px-4 py-2 bg-orange-500 text-white text-sm rounded hover:bg-orange-600">
-                  🔄 重试失败项 ({stats.error})
+                  重试失败项 ({stats.error})
                 </button>
               )}
 
-              {batchResources.length > 0 && !isGenerating && (
+              {hasJob && !serverProcessing && (
                 <button onClick={handleClearJob}
                   className="px-4 py-2 bg-gray-500 text-white text-sm rounded hover:bg-gray-600">
-                  🗑️ 清除任务
+                  清除任务
                 </button>
               )}
             </div>
           </div>
 
-          {/* 统计面板 */}
-          {batchResources.length > 0 && (
+          {/* 统计面板 + 进度条 */}
+          {hasJob && (
             <div className="bg-white rounded-lg shadow-sm p-6">
               <div className="grid grid-cols-5 gap-4 text-center">
                 <div><div className="text-2xl font-bold text-gray-600">{stats.pending}</div><div className="text-sm text-gray-500">等待</div></div>
@@ -509,24 +564,23 @@ export default function AIGeneratorTab() {
                 <div><div className="text-2xl font-bold text-yellow-600">{stats.skipped}</div><div className="text-sm text-gray-500">跳过</div></div>
                 <div><div className="text-2xl font-bold text-red-600">{stats.error}</div><div className="text-sm text-gray-500">失败</div></div>
               </div>
-              {isGenerating && (
-                <div className="mt-4">
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                      style={{ width: `${((stats.completed + stats.skipped + stats.error) / batchResources.length) * 100}%` }} />
-                  </div>
-                  <p className="text-xs text-gray-500 mt-1 text-center">
-                    {stats.completed + stats.skipped + stats.error} / {batchResources.length} · 503 自动重试 (最多 {MAX_RETRIES} 次)
-                  </p>
+              <div className="mt-4">
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                    style={{ width: `${stats.total > 0 ? ((stats.completed + stats.skipped + stats.error) / stats.total) * 100 : 0}%` }} />
                 </div>
-              )}
+                <p className="text-xs text-gray-500 mt-1 text-center">
+                  {stats.completed + stats.skipped + stats.error} / {stats.total}
+                  {serverProcessing && ' · 服务端处理中，可安全关闭页面'}
+                </p>
+              </div>
             </div>
           )}
 
           {/* 资源列表 */}
-          {batchResources.length > 0 ? (
+          {hasJob ? (
             <div className="bg-white rounded-lg shadow-sm p-6">
-              <h4 className="text-sm font-medium text-gray-700 mb-3">资源列表 ({batchResources.length})</h4>
+              <h4 className="text-sm font-medium text-gray-700 mb-3">资源列表 ({stats.total})</h4>
               <div className="space-y-2 max-h-[600px] overflow-y-auto">
                 {batchResources.map((res, index) => (
                   <div key={res.id} className={`flex items-center gap-3 p-3 rounded-lg border ${
@@ -546,11 +600,11 @@ export default function AIGeneratorTab() {
                       res.status === 'skipped' ? 'bg-yellow-100 text-yellow-700' :
                       'bg-red-100 text-red-600'
                     }`}>
-                      {res.status === 'pending' ? '⏳ 等待' :
-                       res.status === 'generating' ? '🔄 生成中' :
-                       res.status === 'completed' ? '✅ 完成' :
-                       res.status === 'skipped' ? '⏭️ 跳过' :
-                       '❌ 失败'}
+                      {res.status === 'pending' ? '等待' :
+                       res.status === 'generating' ? '生成中' :
+                       res.status === 'completed' ? '完成' :
+                       res.status === 'skipped' ? '跳过' :
+                       '失败'}
                     </span>
                     {res.error && <span className="text-xs text-red-500 truncate max-w-[200px]" title={res.error}>{res.error}</span>}
                   </div>
@@ -564,6 +618,7 @@ export default function AIGeneratorTab() {
               <p className="text-sm mt-2">支持 .xlsx / .xls / .csv 格式</p>
               <p className="text-sm mt-1">表头列顺序: 标题, 分类, 描述, 网盘链接, 标签</p>
               <p className="text-sm mt-1 text-blue-500">可设置起始行/结束行来选择部分数据</p>
+              <p className="text-sm mt-2 text-green-600 font-medium">处理在服务端运行，关闭浏览器也不会中断</p>
             </div>
           )}
         </div>

@@ -42,6 +42,8 @@ export async function GET(request: NextRequest) {
       id: job.id,
       createdAt: job.createdAt,
       settings: job.settings,
+      stopped: job.stopped || false,
+      processing: job.processing || false,
       total: resources.length,
       pending: resources.filter((r: { status: string }) => r.status === 'pending').length,
       completed: resources.filter((r: { status: string }) => r.status === 'completed').length,
@@ -63,10 +65,16 @@ export async function POST(request: NextRequest) {
   const { action } = body;
 
   if (action === 'create') {
-    // 创建新任务
+    // 从请求头获取 JWT token 并保存（用于服务端自调用）
+    const authHeader = request.headers.get('authorization') || '';
+    const token = authHeader.replace('Bearer ', '');
+
     const job = {
       id: `batch-${Date.now()}`,
       createdAt: new Date().toISOString(),
+      token, // 存储 token 用于服务端处理链自调用
+      stopped: false,
+      processing: false,
       settings: body.settings || {},
       resources: body.resources || [],
     };
@@ -75,7 +83,6 @@ export async function POST(request: NextRequest) {
   }
 
   if (action === 'update-item') {
-    // 更新单个资源状态
     const job = readJob();
     if (!job) {
       return NextResponse.json({ error: '无活跃任务' }, { status: 404 });
@@ -91,6 +98,52 @@ export async function POST(request: NextRequest) {
     if (skippedReason) job.resources[idx].skippedReason = skippedReason;
     writeJob(job);
     return NextResponse.json({ success: true });
+  }
+
+  if (action === 'stop') {
+    const job = readJob();
+    if (!job) {
+      return NextResponse.json({ error: '无活跃任务' }, { status: 404 });
+    }
+    job.stopped = true;
+    job.processing = false;
+    writeJob(job);
+    return NextResponse.json({ success: true, message: '已发送停止信号' });
+  }
+
+  if (action === 'resume') {
+    const job = readJob();
+    if (!job) {
+      return NextResponse.json({ error: '无活跃任务' }, { status: 404 });
+    }
+    // 更新 token（可能已过期）
+    const authHeader = request.headers.get('authorization') || '';
+    job.token = authHeader.replace('Bearer ', '');
+    job.stopped = false;
+    // 将 generating 状态重置为 pending（之前中断的）
+    for (const r of job.resources) {
+      if (r.status === 'generating') r.status = 'pending';
+    }
+    writeJob(job);
+    return NextResponse.json({ success: true });
+  }
+
+  if (action === 'retry-errors') {
+    const job = readJob();
+    if (!job) {
+      return NextResponse.json({ error: '无活跃任务' }, { status: 404 });
+    }
+    let count = 0;
+    for (const r of job.resources) {
+      if (r.status === 'error') {
+        r.status = 'pending';
+        r.error = undefined;
+        count++;
+      }
+    }
+    job.stopped = false;
+    writeJob(job);
+    return NextResponse.json({ success: true, resetCount: count });
   }
 
   return NextResponse.json({ error: '未知操作' }, { status: 400 });
