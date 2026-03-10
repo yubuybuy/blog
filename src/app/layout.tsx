@@ -47,7 +47,6 @@ export async function generateMetadata(): Promise<Metadata> {
       card: 'summary_large_image',
       title: siteName,
       description: description,
-      creator: '@yourusername',
     },
     robots: {
       index: true,
@@ -59,9 +58,6 @@ export async function generateMetadata(): Promise<Metadata> {
         'max-image-preview': 'large',
         'max-snippet': -1,
       },
-    },
-    verification: {
-      google: 'your-google-site-verification',
     },
   };
 }

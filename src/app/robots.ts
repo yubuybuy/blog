@@ -14,11 +14,17 @@ export default function robots(): MetadataRoute.Robots {
           '/admin/',
           '/_next/',
           '/studio/',
-          '/sanity/'
+          '/sanity/',
+          '/recycle-bin/',
         ],
-      }
+      },
+      // 明确允许 AI 爬虫
+      {
+        userAgent: ['GPTBot', 'ChatGPT-User', 'ClaudeBot', 'Claude-Web', 'PerplexityBot', 'Google-Extended', 'Applebot-Extended', 'cohere-ai', 'Meta-ExternalAgent', 'Bytespider', 'CCBot'],
+        allow: '/',
+      },
     ],
     sitemap: `${baseUrl}/sitemap.xml`,
-    host: baseUrl
+    host: baseUrl,
   }
 }
