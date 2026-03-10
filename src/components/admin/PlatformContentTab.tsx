@@ -48,16 +48,24 @@ export default function PlatformContentTab() {
     'Authorization': `Bearer ${localStorage.getItem('admin-token')}`
   }), [])
 
+  const [total, setTotal] = useState(0)
+
   // 加载文章列表
-  const loadPosts = async (f?: string) => {
+  const loadPosts = async (f?: string, append = false) => {
     setLoading(true)
     try {
       const currentFilter = f || filter
-      const resp = await fetch(`/api/platform-content?filter=${currentFilter}&limit=500`, {
+      const currentOffset = append ? posts.length : 0
+      const resp = await fetch(`/api/platform-content?filter=${currentFilter}&limit=50&offset=${currentOffset}`, {
         headers: authHeader()
       })
       const data = await resp.json()
-      setPosts(data.posts || [])
+      if (append) {
+        setPosts(prev => [...prev, ...(data.posts || [])])
+      } else {
+        setPosts(data.posts || [])
+      }
+      setTotal(data.total || 0)
       setLoaded(true)
     } catch {
       alert('加载失败')
@@ -85,14 +93,14 @@ export default function PlatformContentTab() {
     }
   }
 
-  // 为文章生成多平台内容
-  const generateForPost = async (postId: string, regenerate = false) => {
+  // 为文章生成内容
+  const generateForPost = async (postId: string, scope: 'platform' | 'main' | 'all', regenerate = false) => {
     setGenerating(postId)
     try {
       const resp = await fetch('/api/platform-content', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...authHeader() },
-        body: JSON.stringify({ postId, regenerate }),
+        body: JSON.stringify({ postId, regenerate, scope }),
       })
       const data = await resp.json()
       if (data.success && !data.skipped) {
@@ -140,7 +148,7 @@ export default function PlatformContentTab() {
         const resp = await fetch('/api/platform-content', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', ...authHeader() },
-          body: JSON.stringify({ postId: post._id }),
+          body: JSON.stringify({ postId: post._id, scope: 'platform' }),
         })
         const data = await resp.json()
         if (data.success) {
@@ -189,12 +197,15 @@ export default function PlatformContentTab() {
         <div className="flex justify-between items-center mb-4">
           <div>
             <h2 className="text-xl font-bold text-gray-800">多平台内容管理</h2>
-            <p className="text-gray-600 mt-1">查看、生成、复制各平台推广内容（知乎 / 公众号 / 小红书 / 头条）</p>
+            <p className="text-gray-600 mt-1">查看、生成、复制各平台推广内容 · 支持重新生成主站/平台/全部内容</p>
           </div>
-          <button onClick={() => loadPosts()} disabled={loading}
-            className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 disabled:bg-gray-400">
-            {loading ? '加载中...' : loaded ? '刷新列表' : '加载文章'}
-          </button>
+          <div className="text-right">
+            {loaded && <p className="text-xs text-gray-400 mb-1">已加载 {posts.length} / {total} 篇</p>}
+            <button onClick={() => loadPosts()} disabled={loading}
+              className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 disabled:bg-gray-400">
+              {loading ? '加载中...' : loaded ? '刷新列表' : '加载文章'}
+            </button>
+          </div>
         </div>
 
         {loaded && (
@@ -267,24 +278,32 @@ export default function PlatformContentTab() {
                   )}
 
                   {/* 操作按钮 */}
-                  <div className="flex gap-2 flex-shrink-0">
+                  <div className="flex gap-1 flex-shrink-0">
                     {post.hasPlatformContent && (
                       <button onClick={() => viewContent(post._id)}
-                        className={`px-3 py-1 text-xs rounded ${
+                        className={`px-2 py-1 text-xs rounded ${
                           selectedPost === post._id ? 'bg-blue-600 text-white' : 'bg-blue-50 text-blue-600 hover:bg-blue-100'
                         }`}>
                         {selectedPost === post._id ? '收起' : '查看'}
                       </button>
                     )}
                     <button
-                      onClick={() => generateForPost(post._id, post.hasPlatformContent)}
+                      onClick={() => generateForPost(post._id, 'platform', post.hasPlatformContent)}
                       disabled={generating === post._id}
-                      className={`px-3 py-1 text-xs rounded ${
-                        post.hasPlatformContent
-                          ? 'bg-orange-50 text-orange-600 hover:bg-orange-100'
-                          : 'bg-purple-600 text-white hover:bg-purple-700'
-                      } disabled:bg-gray-300 disabled:text-gray-500`}>
-                      {generating === post._id ? '生成中...' : post.hasPlatformContent ? '重新生成' : '生成'}
+                      className="px-2 py-1 text-xs rounded bg-purple-50 text-purple-600 hover:bg-purple-100 disabled:bg-gray-200 disabled:text-gray-400">
+                      {generating === post._id ? '生成中...' : post.hasPlatformContent ? '重生平台' : '生成平台'}
+                    </button>
+                    <button
+                      onClick={() => generateForPost(post._id, 'main', true)}
+                      disabled={generating === post._id}
+                      className="px-2 py-1 text-xs rounded bg-green-50 text-green-600 hover:bg-green-100 disabled:bg-gray-200 disabled:text-gray-400">
+                      重生主站
+                    </button>
+                    <button
+                      onClick={() => generateForPost(post._id, 'all', true)}
+                      disabled={generating === post._id}
+                      className="px-2 py-1 text-xs rounded bg-orange-50 text-orange-600 hover:bg-orange-100 disabled:bg-gray-200 disabled:text-gray-400">
+                      全部重生
                     </button>
                   </div>
                 </div>
@@ -324,6 +343,15 @@ export default function PlatformContentTab() {
               </div>
             ))}
           </div>
+          {/* 加载更多 */}
+          {posts.length < total && (
+            <div className="p-4 text-center border-t">
+              <button onClick={() => loadPosts(undefined, true)} disabled={loading}
+                className="px-6 py-2 bg-gray-100 text-gray-700 text-sm rounded-lg hover:bg-gray-200 disabled:bg-gray-50 disabled:text-gray-400">
+                {loading ? '加载中...' : `加载更多 (还有 ${total - posts.length} 篇)`}
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>
