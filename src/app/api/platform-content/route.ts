@@ -25,54 +25,64 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: '未授权' }, { status: 401 });
   }
 
-  const filter = request.nextUrl.searchParams.get('filter') || 'all';
-  const pageSize = Math.min(Number(request.nextUrl.searchParams.get('limit')) || 50, 200);
-  const offset = Math.max(Number(request.nextUrl.searchParams.get('offset')) || 0, 0);
-  const postId = request.nextUrl.searchParams.get('postId');
+  try {
+    const filter = request.nextUrl.searchParams.get('filter') || 'all';
+    const pageSize = Math.min(Number(request.nextUrl.searchParams.get('limit')) || 50, 200);
+    const offset = Math.max(Number(request.nextUrl.searchParams.get('offset')) || 0, 0);
+    const postId = request.nextUrl.searchParams.get('postId');
 
-  if (postId) {
-    const post = await sanityClient.fetch(
-      `*[_type == "post" && _id == $postId][0] {
+    if (postId) {
+      const post = await sanityClient.fetch(
+        `*[_type == "post" && _id == $postId][0] {
+          _id, title, excerpt, publishedAt,
+          categories[]->{ title },
+          downloadLink, markdownContent, platformContent
+        }`,
+        { postId }
+      );
+      if (!post) {
+        return NextResponse.json({ error: '文章不存在' }, { status: 404 });
+      }
+      return NextResponse.json({ post });
+    }
+
+    let filterClause = '';
+    if (filter === 'missing') {
+      filterClause = '&& (!defined(platformContent) || platformContent == null)';
+    } else if (filter === 'has') {
+      filterClause = '&& defined(platformContent) && platformContent != null';
+    }
+
+    // 先查总数
+    const totalQuery = `count(*[_type == "post" ${filterClause}])`;
+    const total = await sanityClient.fetch(totalQuery);
+
+    const posts = await sanityClient.fetch(
+      `*[_type == "post" ${filterClause}] | order(publishedAt desc) [$offset...$end] {
         _id, title, excerpt, publishedAt,
         categories[]->{ title },
-        downloadLink, markdownContent, platformContent
+        downloadLink,
+        "hasPlatformContent": defined(platformContent) && platformContent != null,
+        "platforms": {
+          "zhihu": defined(platformContent.zhihu) && platformContent.zhihu != null,
+          "wechat": defined(platformContent.wechat) && platformContent.wechat != null,
+          "xiaohongshu": defined(platformContent.xiaohongshu) && platformContent.xiaohongshu != null,
+          "toutiao": defined(platformContent.toutiao) && platformContent.toutiao != null
+        }
       }`,
-      { postId }
+      { offset, end: offset + pageSize }
     );
-    if (!post) {
-      return NextResponse.json({ error: '文章不存在' }, { status: 404 });
-    }
-    return NextResponse.json({ post });
+
+    return NextResponse.json({ posts, total, offset, pageSize });
+  } catch (e) {
+    console.error('[platform-content GET] 错误:', e);
+    return NextResponse.json({
+      error: `查询失败: ${e instanceof Error ? e.message : '未知错误'}`,
+      posts: [],
+      total: 0,
+      _debug: String(e),
+    }, { status: 500 });
   }
-
-  let filterClause = '';
-  if (filter === 'missing') {
-    filterClause = '&& (!defined(platformContent) || platformContent == null)';
-  } else if (filter === 'has') {
-    filterClause = '&& defined(platformContent) && platformContent != null';
-  }
-
-  // 先查总数
-  const totalQuery = `count(*[_type == "post" ${filterClause}])`;
-  const total = await sanityClient.fetch(totalQuery);
-
-  const posts = await sanityClient.fetch(
-    `*[_type == "post" ${filterClause}] | order(publishedAt desc) [$offset...$end] {
-      _id, title, excerpt, publishedAt,
-      categories[]->{ title },
-      downloadLink,
-      "hasPlatformContent": defined(platformContent) && platformContent != null,
-      "platforms": {
-        "zhihu": defined(platformContent.zhihu) && platformContent.zhihu != null,
-        "wechat": defined(platformContent.wechat) && platformContent.wechat != null,
-        "xiaohongshu": defined(platformContent.xiaohongshu) && platformContent.xiaohongshu != null,
-        "toutiao": defined(platformContent.toutiao) && platformContent.toutiao != null
-      }
-    }`,
-    { offset, end: offset + pageSize }
-  );
-
-  return NextResponse.json({ posts, total, offset, pageSize });
 }
 
 // POST - 为已有文章生成多平台内容

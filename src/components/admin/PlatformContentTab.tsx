@@ -61,10 +61,14 @@ export default function PlatformContentTab() {
       })
       if (!resp.ok) {
         const err = await resp.json().catch(() => ({}))
-        alert(resp.status === 401 ? '认证已过期，请重新登录' : `加载失败: ${err.error || resp.status}`)
+        alert(resp.status === 401 ? '认证已过期，请重新登录' : `加载失败(${resp.status}): ${err.error || err._debug || '未知错误'}`)
         return
       }
       const data = await resp.json()
+      // 如果返回了错误信息但 HTTP 200（不应该发生，但防御性处理）
+      if (data.error) {
+        alert(`API 错误: ${data.error}`)
+      }
       if (append) {
         setPosts(prev => [...prev, ...(data.posts || [])])
       } else {
