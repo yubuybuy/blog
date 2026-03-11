@@ -122,12 +122,27 @@ export async function POST(request: NextRequest) {
     });
   }
 
+  // 如果 downloadLink 字段为空，尝试从现有文章内容中提取网盘链接
+  let downloadLink = post.downloadLink || '';
+  if (!downloadLink && post.markdownContent) {
+    // 优先匹配网盘域名链接
+    const panMatch = post.markdownContent.match(/https?:\/\/[^\s)]*(?:pan\.quark\.cn|quark\.cn|pan\.baidu\.com|aliyundrive\.com|alipan\.com|115\.com|cloud\.189\.cn)[^\s)]*/);
+    // 其次匹配 markdown 格式的"获取/下载/资源"类链接
+    const resourceMatch = post.markdownContent.match(/\[.*?(?:获取|下载|资源).*?\]\((https?:\/\/[^\s)]+)\)/);
+    const extracted = panMatch?.[0] || resourceMatch?.[1] || '';
+    if (extracted) {
+      downloadLink = extracted;
+      await sanityClient.patch(postId).set({ downloadLink }).commit();
+      console.log(`[platform-content] 从内容中提取并补存 downloadLink:`, downloadLink);
+    }
+  }
+
   const resourceInfo = {
     title: post.title,
     category: post.categories?.[0]?.title || '电影',
     tags: post.categories?.map((c: { title: string }) => c.title) || [],
     description: post.excerpt || '',
-    downloadLink: post.downloadLink || '',
+    downloadLink,
   };
 
   console.log(`[platform-content] 开始生成 (scope=${scope}):`, resourceInfo.title, '| downloadLink:', post.downloadLink || '(空)');
