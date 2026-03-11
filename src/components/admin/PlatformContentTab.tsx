@@ -118,7 +118,8 @@ export default function PlatformContentTab() {
           setPlatformContent(data.platformContent)
         }
         const scopeLabel = scope === 'main' ? '主站内容' : scope === 'all' ? '全部内容' : '多平台内容'
-        alert(`"${data.title}" ${scopeLabel}生成成功！`)
+        const linkInfo = data.downloadLink ? `\n网盘链接: ${data.downloadLink}` : '\n(该文章无网盘链接)'
+        alert(`"${data.title}" ${scopeLabel}生成成功！${linkInfo}`)
       } else if (data.skipped) {
         if (selectedPost === postId) {
           setPlatformContent(data.platformContent)

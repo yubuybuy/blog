@@ -120,10 +120,10 @@ export async function POST(request: NextRequest) {
     downloadLink: post.downloadLink || '',
   };
 
-  console.log(`[platform-content] 开始生成 (scope=${scope}):`, resourceInfo.title);
+  console.log(`[platform-content] 开始生成 (scope=${scope}):`, resourceInfo.title, '| downloadLink:', post.downloadLink || '(空)');
 
   const patchData: Record<string, unknown> = {};
-  const responseData: Record<string, unknown> = { success: true, postId, title: post.title };
+  const responseData: Record<string, unknown> = { success: true, postId, title: post.title, downloadLink: post.downloadLink || null };
 
   // 生成主站内容
   if (scope === 'main' || scope === 'all') {
