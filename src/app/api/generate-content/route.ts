@@ -373,6 +373,23 @@ function fixInvalidLinks(content: string, resourceInfo: ResourceInfo): string {
   return content;
 }
 
+// 移除 AI 生成的资源获取段落，追加正确的版本（确保下载链接不丢失）
+function ensureResourceSection(content: string, downloadLink: string): string {
+  let cleaned = content.replace(/\n*## 资源获取[\s\S]*?(?=\n## |\n*$)/, '');
+  cleaned = cleaned.replace(/\n*\*本文仅供学习交流.*?\*\s*$/, '');
+  cleaned = cleaned.trimEnd();
+
+  const hasValidLink = downloadLink &&
+    downloadLink !== '#' &&
+    downloadLink.trim() !== '';
+
+  const resourceBlock = hasValidLink
+    ? `\n\n## 资源获取\n[获取高清观看资源](${downloadLink})\n\n*本文仅供学习交流，请支持正版。*`
+    : `\n\n## 资源获取\n资源链接待更新，请关注后续发布。\n\n*本文仅供学习交流，请支持正版。*`;
+
+  return cleaned + resourceBlock;
+}
+
 
 // 发布内容到Sanity
 async function publishToSanity(content: GeneratedContent, resourceInfo: ResourceInfo) {
@@ -382,6 +399,9 @@ async function publishToSanity(content: GeneratedContent, resourceInfo: Resource
 
     // 修复无效的网盘链接
     processedContent = fixInvalidLinks(processedContent, resourceInfo);
+
+    // 确保资源获取段落包含正确的下载链接
+    processedContent = ensureResourceSection(processedContent, resourceInfo.downloadLink || '');
 
     // 根据分类名称找到对应的分类ID
     const categoryRef = await findCategoryByName(resourceInfo.category);

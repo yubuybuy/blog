@@ -135,8 +135,10 @@ export async function POST(request: NextRequest) {
     }
 
     // 更新主站内容（保留原 title 和 slug 不变）
-    patchData.markdownContent = mainResult.data.content;
-    patchData.body = convertToBlockContent(mainResult.data.content);
+    // 强制追加正确的资源获取段落（不依赖 AI 生成）
+    const contentWithResource = ensureResourceSection(mainResult.data.content, resourceInfo.downloadLink);
+    patchData.markdownContent = contentWithResource;
+    patchData.body = convertToBlockContent(contentWithResource);
     patchData.excerpt = mainResult.data.excerpt;
     responseData.mainContent = { excerpt: mainResult.data.excerpt, contentLength: mainResult.data.content.length };
 
@@ -589,4 +591,19 @@ function isValidPlatformContent(obj: unknown): obj is Record<string, string> {
     k => typeof o[k] === 'string' && (o[k] as string).length > 20
   );
   return validKeys.length >= 2;
+}
+
+// 移除 AI 生成的资源获取段落，追加正确的版本（确保下载链接不丢失）
+function ensureResourceSection(content: string, downloadLink: string): string {
+  // 移除 AI 可能生成的资源获取段落（从 ## 资源获取 到下一个 ## 或文末）
+  let cleaned = content.replace(/\n*## 资源获取[\s\S]*?(?=\n## |\n*$)/, '');
+  // 也移除末尾的免责声明（可能单独出现）
+  cleaned = cleaned.replace(/\n*\*本文仅供学习交流.*?\*\s*$/, '');
+  cleaned = cleaned.trimEnd();
+
+  const resourceBlock = downloadLink
+    ? `\n\n## 资源获取\n[获取高清观看资源](${downloadLink})\n\n*本文仅供学习交流，请支持正版。*`
+    : `\n\n## 资源获取\n资源链接待更新，请关注后续发布。\n\n*本文仅供学习交流，请支持正版。*`;
+
+  return cleaned + resourceBlock;
 }
