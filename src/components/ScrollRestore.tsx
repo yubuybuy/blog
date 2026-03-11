@@ -1,18 +1,25 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useLayoutEffect } from 'react'
 
 const STORAGE_KEY = 'posts-scroll-y'
 
 export default function ScrollRestore() {
-  useEffect(() => {
+  useLayoutEffect(() => {
     const saved = sessionStorage.getItem(STORAGE_KEY)
     if (saved) {
       const y = parseInt(saved, 10)
       sessionStorage.removeItem(STORAGE_KEY)
-      // 等待页面渲染完成后恢复滚动位置
+
+      // 恢复前隐藏页面，防止闪烁
+      const html = document.documentElement
+      html.style.visibility = 'hidden'
+
+      window.scrollTo(0, y)
+
+      // 滚动完成后再显示
       requestAnimationFrame(() => {
-        window.scrollTo(0, y)
+        html.style.visibility = ''
       })
     }
   }, [])
