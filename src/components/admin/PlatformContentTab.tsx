@@ -59,6 +59,11 @@ export default function PlatformContentTab() {
       const resp = await fetch(`/api/platform-content?filter=${currentFilter}&limit=50&offset=${currentOffset}`, {
         headers: authHeader()
       })
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({}))
+        alert(resp.status === 401 ? '认证已过期，请重新登录' : `加载失败: ${err.error || resp.status}`)
+        return
+      }
       const data = await resp.json()
       if (append) {
         setPosts(prev => [...prev, ...(data.posts || [])])
