@@ -1,4 +1,5 @@
 import PostCard from '@/components/PostCard'
+import ScrollRestore from '@/components/ScrollRestore'
 import { getPosts, getSiteName } from '@/lib/queries'
 import { Post } from '@/types'
 
@@ -17,6 +18,7 @@ export default async function PostsPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <ScrollRestore />
       <div className="text-center mb-12">
         <h1 className="text-3xl font-bold text-gray-900 mb-4">
           所有文章

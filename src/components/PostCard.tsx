@@ -11,39 +11,23 @@ interface PostCardProps {
 }
 
 export default function PostCard({ post }: PostCardProps) {
-  // 强制为每个文章生成图片URL
   const getImageUrl = () => {
-    console.log('PostCard - 检查图片:', {
-      mainImageUrl: post.mainImageUrl,
-      mainImage: post.mainImage,
-      title: post.title
-    });
-
-    // 检查是否有自定义图片URL
     if (post.mainImageUrl) {
-      console.log('使用mainImageUrl:', post.mainImageUrl);
       return post.mainImageUrl;
     }
 
-    // 检查Sanity图像的自定义URL
     if (post.mainImage?.customUrl) {
-      console.log('使用customUrl:', post.mainImage.customUrl);
       return post.mainImage.customUrl;
     }
 
-    // 最后使用Sanity图像
     if (post.mainImage && post.mainImage.asset) {
       try {
-        const sanityUrl = urlFor(post.mainImage).width(600).height(300).url();
-        console.log('使用Sanity URL:', sanityUrl);
-        return sanityUrl;
-      } catch (error) {
-        console.warn('Sanity image URL生成失败:', error);
+        return urlFor(post.mainImage).width(600).height(300).url();
+      } catch {
+        // Sanity image URL 生成失败，fallback
       }
     }
 
-    // 如果都没有，检查是否为电影类内容
-    // 对于电影内容，如果没有海报则不显示图片
     const isMoviePost = post.categories?.some(cat =>
       ['电影', '影视', '娱乐', '剧集', '动画'].includes(cat.title)
     ) || ['电影', '影片', '电视剧', '纪录片', '动画', '剧集'].some(keyword =>
@@ -51,23 +35,22 @@ export default function PostCard({ post }: PostCardProps) {
     );
 
     if (isMoviePost) {
-      console.log('电影内容无海报，不显示图片');
-      return null; // 不显示图片
+      return null;
     }
 
-    // 非电影内容使用本地占位图片
-    const fallbackUrl = `/api/placeholder?text=${encodeURIComponent(post.title.slice(0, 10))}&width=600&height=300`;
-    console.log('使用fallback URL:', fallbackUrl);
-    return fallbackUrl;
+    return `/api/placeholder?text=${encodeURIComponent(post.title.slice(0, 10))}&width=600&height=300`;
   };
 
   const imageUrl = getImageUrl();
 
+  const saveScrollPosition = () => {
+    sessionStorage.setItem('posts-scroll-y', String(window.scrollY))
+  }
+
   return (
     <article className="group bg-white rounded-3xl shadow-sm hover:shadow-2xl overflow-hidden border border-gray-100 hover:border-purple-200 transition-all duration-500 hover:-translate-y-2">
-      {/* 只在有图片时显示图片区域 */}
       {imageUrl && (
-        <Link href={`/posts/${post.slug.current}`}>
+        <Link href={`/posts/${post.slug.current}`} onClick={saveScrollPosition}>
           <div className="relative h-40 sm:h-48 md:h-56 w-full overflow-hidden">
             <Image
               src={imageUrl}
@@ -78,8 +61,6 @@ export default function PostCard({ post }: PostCardProps) {
               quality={75}
               sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
               onError={(e) => {
-                console.error('PostCard图片加载失败:', imageUrl);
-                // 图片加载失败时隐藏图片而不是显示另一个随机图片
                 (e.target as HTMLImageElement).style.display = 'none';
               }}
             />
@@ -104,6 +85,7 @@ export default function PostCard({ post }: PostCardProps) {
         <h2 className="text-lg sm:text-xl md:text-2xl font-bold mb-3 leading-tight">
           <Link
             href={`/posts/${post.slug.current}`}
+            onClick={saveScrollPosition}
             className="text-gray-900 hover:bg-gradient-to-r hover:from-blue-600 hover:to-purple-600 hover:bg-clip-text hover:text-transparent transition-all duration-300"
           >
             {post.title}
@@ -142,9 +124,9 @@ export default function PostCard({ post }: PostCardProps) {
           )}
         </div>
 
-        {/* 阅读更多按钮 */}
         <Link
           href={`/posts/${post.slug.current}`}
+          onClick={saveScrollPosition}
           className="inline-flex items-center mt-3 sm:mt-4 text-purple-600 hover:text-purple-800 font-semibold text-sm group"
         >
           阅读文章

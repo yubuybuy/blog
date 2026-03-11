@@ -1,4 +1,4 @@
-import { client } from './sanity'
+import { client, cdnClient } from './sanity'
 
 // 获取网站设置
 export async function getSiteSettings() {
@@ -140,5 +140,5 @@ export async function searchPosts(searchQuery: string) {
     }
   `
 
-  return await client.fetch(query, { searchQuery: `${searchQuery}*` })
+  return await cdnClient.fetch(query, { searchQuery: `${searchQuery}*` })
 }
