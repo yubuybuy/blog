@@ -204,12 +204,16 @@ async function generateMainContent(
   includeMultiPlatform: boolean,
 ): Promise<MainContentResult> {
   const templateKey = includeMultiPlatform ? 'movieReviewMultiPlatform' : 'movieReview';
+  const resourceSection = resourceInfo.downloadLink
+    ? `## 资源获取\n[获取高清观看资源](${resourceInfo.downloadLink})\n\n*本文仅供学习交流，请支持正版。*`
+    : `## 资源获取\n资源链接待更新，请关注后续发布。\n\n*本文仅供学习交流，请支持正版。*`;
   const prompt = PROMPT_TEMPLATES[templateKey]
     .replace(/{title}/g, resourceInfo.title)
     .replace(/{category}/g, resourceInfo.category)
     .replace(/{tags}/g, resourceInfo.tags.join(', '))
     .replace(/{description}/g, resourceInfo.description || '暂无详细描述')
-    .replace(/{downloadLink}/g, resourceInfo.downloadLink || '#');
+    .replace(/{downloadLink}/g, resourceInfo.downloadLink || '#')
+    .replace(/{resourceSection}/g, resourceSection);
 
   const multiplier = includeMultiPlatform ? CURRENT_CONFIG.modelParams.multiPlatformTokenMultiplier : 1;
 

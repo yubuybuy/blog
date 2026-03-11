@@ -148,12 +148,16 @@ async function generateWithGemini(resourceInfo: ResourceInfo, useMultiPlatform: 
   try {
     // 根据是否开启多平台选择模板
     const templateKey = useMultiPlatform ? 'movieReviewMultiPlatform' : 'movieReview';
+    const resourceSection = resourceInfo.downloadLink
+      ? `## 资源获取\n[获取高清观看资源](${resourceInfo.downloadLink})\n\n*本文仅供学习交流，请支持正版。*`
+      : `## 资源获取\n资源链接待更新，请关注后续发布。\n\n*本文仅供学习交流，请支持正版。*`;
     const prompt = PROMPT_TEMPLATES[templateKey]
       .replace(/{title}/g, resourceInfo.title)
       .replace(/{category}/g, resourceInfo.category)
       .replace(/{tags}/g, resourceInfo.tags.join(', '))
       .replace(/{description}/g, resourceInfo.description || '暂无详细描述')
-      .replace(/{downloadLink}/g, resourceInfo.downloadLink || '#');
+      .replace(/{downloadLink}/g, resourceInfo.downloadLink || '#')
+      .replace(/{resourceSection}/g, resourceSection);
 
     // 多平台模式下增加 token 限制
     const maxTokens = useMultiPlatform
@@ -233,12 +237,16 @@ async function generateWithCohere(resourceInfo: ResourceInfo, useMultiPlatform: 
   try {
     // 根据是否开启多平台选择模板
     const templateKey = useMultiPlatform ? 'movieReviewMultiPlatform' : 'movieReview';
+    const resourceSection = resourceInfo.downloadLink
+      ? `## 资源获取\n[获取高清观看资源](${resourceInfo.downloadLink})\n\n*本文仅供学习交流，请支持正版。*`
+      : `## 资源获取\n资源链接待更新，请关注后续发布。\n\n*本文仅供学习交流，请支持正版。*`;
     const prompt = PROMPT_TEMPLATES[templateKey]
       .replace(/{title}/g, resourceInfo.title)
       .replace(/{category}/g, resourceInfo.category)
       .replace(/{tags}/g, resourceInfo.tags.join(', '))
       .replace(/{description}/g, resourceInfo.description || '暂无详细描述')
-      .replace(/{downloadLink}/g, resourceInfo.downloadLink || '#');
+      .replace(/{downloadLink}/g, resourceInfo.downloadLink || '#')
+      .replace(/{resourceSection}/g, resourceSection);
 
     // 多平台模式下增加 token 限制
     const maxTokens = useMultiPlatform

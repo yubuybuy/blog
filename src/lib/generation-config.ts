@@ -138,11 +138,7 @@ export const PROMPT_TEMPLATES = {
 ### {title}适合什么人看？
 用1-2句话回答。
 
-## 资源获取
-如果有网盘链接：[获取高清观看资源]({downloadLink})
-如果没有：资源链接待更新，请关注后续发布。
-
-*本文仅供学习交流，请支持正版。*
+{resourceSection}
 
 重要要求：
 - content 字段中的换行用\\n，不要用真实换行
@@ -219,11 +215,7 @@ export const PROMPT_TEMPLATES = {
 ### {title}适合什么人看？
 用1-2句话回答。
 
-## 资源获取
-如果有网盘链接：[获取高清观看资源]({downloadLink})
-如果没有：资源链接待更新，请关注后续发布。
-
-*本文仅供学习交流，请支持正版。*
+{resourceSection}
 
 ---
 
