@@ -85,6 +85,25 @@ export async function GET(request: NextRequest) {
   }
 }
 
+// PATCH - 更新文章的网盘链接
+export async function PATCH(request: NextRequest) {
+  const auth = authenticateRequest(request);
+  if (!auth.authenticated) {
+    return NextResponse.json({ error: '未授权' }, { status: 401 });
+  }
+
+  const { postId, downloadLink } = await request.json();
+  if (!postId) {
+    return NextResponse.json({ error: '缺少文章ID' }, { status: 400 });
+  }
+
+  const link = (downloadLink || '').trim();
+  await sanityClient.patch(postId).set({ downloadLink: link || null }).commit();
+  console.log(`[platform-content] 更新 downloadLink: ${postId} →`, link || '(清空)');
+
+  return NextResponse.json({ success: true, postId, downloadLink: link || null });
+}
+
 // POST - 为已有文章生成多平台内容
 export async function POST(request: NextRequest) {
   const auth = authenticateRequest(request);

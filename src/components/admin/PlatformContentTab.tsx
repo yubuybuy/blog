@@ -43,6 +43,8 @@ export default function PlatformContentTab() {
   const [generating, setGenerating] = useState<string | null>(null)
   const [copiedKey, setCopiedKey] = useState<string | null>(null)
   const [loaded, setLoaded] = useState(false)
+  const [editingLink, setEditingLink] = useState<string | null>(null)
+  const [editLinkValue, setEditLinkValue] = useState('')
 
   const authHeader = useCallback(() => ({
     'Authorization': `Bearer ${localStorage.getItem('admin-token')}`
@@ -194,6 +196,27 @@ export default function PlatformContentTab() {
     }
   }
 
+  const handleSaveLink = async (postId: string) => {
+    try {
+      const resp = await fetch('/api/platform-content', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', ...authHeader() },
+        body: JSON.stringify({ postId, downloadLink: editLinkValue }),
+      })
+      const data = await resp.json()
+      if (data.success) {
+        setPosts(prev => prev.map(p =>
+          p._id === postId ? { ...p, downloadLink: data.downloadLink || undefined } : p
+        ))
+        setEditingLink(null)
+      } else {
+        alert(`保存失败: ${data.error}`)
+      }
+    } catch {
+      alert('请求失败')
+    }
+  }
+
   const handleFilterChange = (f: 'all' | 'missing' | 'has') => {
     setFilter(f)
     setSelectedPost(null)
@@ -271,15 +294,40 @@ export default function PlatformContentTab() {
                   {/* 标题 */}
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-gray-900 truncate">{post.title}</p>
-                    <p className="text-xs text-gray-500">
-                      {post.categories?.map(c => c.title).join(', ') || '未分类'}
-                      {' · '}
-                      {new Date(post.publishedAt).toLocaleDateString('zh-CN')}
-                      {post.downloadLink
-                        ? <span className="text-green-600 ml-1" title={post.downloadLink}> · 有链接</span>
-                        : <span className="text-red-400 ml-1"> · 无链接</span>
-                      }
-                    </p>
+                    <div className="text-xs text-gray-500 flex items-center gap-1 flex-wrap">
+                      <span>{post.categories?.map(c => c.title).join(', ') || '未分类'}</span>
+                      <span>·</span>
+                      <span>{new Date(post.publishedAt).toLocaleDateString('zh-CN')}</span>
+                      <span>·</span>
+                      {editingLink === post._id ? (
+                        <span className="inline-flex items-center gap-1">
+                          <input
+                            type="url"
+                            value={editLinkValue}
+                            onChange={(e) => setEditLinkValue(e.target.value)}
+                            placeholder="粘贴网盘链接"
+                            className="w-48 px-1 py-0.5 text-xs border rounded"
+                            autoFocus
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') handleSaveLink(post._id)
+                              if (e.key === 'Escape') setEditingLink(null)
+                            }}
+                          />
+                          <button onClick={() => handleSaveLink(post._id)}
+                            className="text-green-600 hover:text-green-800 text-xs font-medium">保存</button>
+                          <button onClick={() => setEditingLink(null)}
+                            className="text-gray-400 hover:text-gray-600 text-xs">取消</button>
+                        </span>
+                      ) : (
+                        <button
+                          onClick={() => { setEditingLink(post._id); setEditLinkValue(post.downloadLink || '') }}
+                          className={`hover:underline ${post.downloadLink ? 'text-green-600' : 'text-red-400'}`}
+                          title={post.downloadLink || '点击添加链接'}
+                        >
+                          {post.downloadLink ? '有链接' : '无链接'}
+                        </button>
+                      )}
+                    </div>
                   </div>
 
                   {/* 平台标签 */}
