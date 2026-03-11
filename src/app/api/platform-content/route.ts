@@ -103,7 +103,7 @@ export async function POST(request: NextRequest) {
     `*[_type == "post" && _id == $postId][0] {
       _id, title, excerpt,
       categories[]->{ title },
-      downloadLink, markdownContent, platformContent
+      downloadLink, markdownContent, body, platformContent
     }`,
     { postId }
   );
@@ -133,9 +133,20 @@ export async function POST(request: NextRequest) {
     if (extracted) {
       downloadLink = extracted;
       await sanityClient.patch(postId).set({ downloadLink }).commit();
-      console.log(`[platform-content] 从内容中提取并补存 downloadLink:`, downloadLink);
+      console.log(`[platform-content] 从 markdownContent 提取并补存 downloadLink:`, downloadLink);
     }
   }
+  // 如果 markdownContent 里也没找到，尝试从 body (block content) 中提取
+  if (!downloadLink && post.body) {
+    const bodyText = JSON.stringify(post.body);
+    const panMatch = bodyText.match(/https?:\/\/[^\s)"\\]*(?:pan\.quark\.cn|quark\.cn|pan\.baidu\.com|aliyundrive\.com|alipan\.com|115\.com|cloud\.189\.cn)[^\s)"\\]*/);
+    if (panMatch) {
+      downloadLink = panMatch[0];
+      await sanityClient.patch(postId).set({ downloadLink }).commit();
+      console.log(`[platform-content] 从 body 提取并补存 downloadLink:`, downloadLink);
+    }
+  }
+  console.log(`[platform-content] downloadLink 最终值:`, downloadLink || '(空)');
 
   const resourceInfo = {
     title: post.title,
