@@ -129,13 +129,13 @@ export const PROMPT_TEMPLATES = {
 
 ## 常见问题
 
-### {title}讲了什么故事？
+### {movieName}讲了什么故事？
 用2-3句话回答。
 
-### {title}值得看吗？
+### {movieName}值得看吗？
 用2-3句话给出推荐理由。
 
-### {title}适合什么人看？
+### {movieName}适合什么人看？
 用1-2句话回答。
 
 {resourceSection}
@@ -147,6 +147,7 @@ export const PROMPT_TEMPLATES = {
 - 语言专业但不枯燥，有深度但易读
 - 所有事实信息尽量准确（导演、演员、年份等）
 - 常见问题部分必须是完整的自然语言回答，不要省略
+- 常见问题标题只用电影名称，不要用文章完整标题
 
 请按 JSON 格式返回：
 {
@@ -156,9 +157,9 @@ export const PROMPT_TEMPLATES = {
   "tags": ["电影名", "导演名", "类型", "相关标签", "IMDB"],
   "imagePrompt": "电影海报相关描述",
   "faq": [
-    {"question": "{title}讲了什么故事？", "answer": "完整回答"},
-    {"question": "{title}值得看吗？", "answer": "完整回答"},
-    {"question": "{title}适合什么人看？", "answer": "完整回答"}
+    {"question": "{movieName}讲了什么故事？", "answer": "完整回答"},
+    {"question": "{movieName}值得看吗？", "answer": "完整回答"},
+    {"question": "{movieName}适合什么人看？", "answer": "完整回答"}
   ]
 }`,
 
@@ -206,13 +207,13 @@ export const PROMPT_TEMPLATES = {
 
 ## 常见问题
 
-### {title}讲了什么故事？
+### {movieName}讲了什么故事？
 用2-3句话回答。
 
-### {title}值得看吗？
+### {movieName}值得看吗？
 用2-3句话给出推荐理由。
 
-### {title}适合什么人看？
+### {movieName}适合什么人看？
 用1-2句话回答。
 
 {resourceSection}
@@ -244,6 +245,7 @@ export const PROMPT_TEMPLATES = {
 - 语言专业但不枯燥，有深度但易读
 - 所有事实信息尽量准确（导演、演员、年份等）
 - 常见问题部分必须是完整的自然语言回答，不要省略
+- 常见问题标题只用电影名称，不要用文章完整标题
 
 请按 JSON 格式返回：
 {
@@ -253,9 +255,9 @@ export const PROMPT_TEMPLATES = {
   "tags": ["电影名", "导演名", "类型", "相关标签", "IMDB"],
   "imagePrompt": "电影海报相关描述",
   "faq": [
-    {"question": "{title}讲了什么故事？", "answer": "完整回答"},
-    {"question": "{title}值得看吗？", "answer": "完整回答"},
-    {"question": "{title}适合什么人看？", "answer": "完整回答"}
+    {"question": "{movieName}讲了什么故事？", "answer": "完整回答"},
+    {"question": "{movieName}值得看吗？", "answer": "完整回答"},
+    {"question": "{movieName}适合什么人看？", "answer": "完整回答"}
   ],
   "platformContent": {
     "zhihu": "知乎版完整内容(markdown格式，换行用\\\\n)",

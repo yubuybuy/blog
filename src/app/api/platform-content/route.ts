@@ -207,8 +207,12 @@ async function generateMainContent(
   const resourceSection = resourceInfo.downloadLink
     ? `## 资源获取\n[获取高清观看资源](${resourceInfo.downloadLink})\n\n*本文仅供学习交流，请支持正版。*`
     : `## 资源获取\n资源链接待更新，请关注后续发布。\n\n*本文仅供学习交流，请支持正版。*`;
+  // 从标题中提取纯电影名（如 "《指环王1》开启史诗..." → "指环王1"）
+  const movieNameMatch = resourceInfo.title.match(/《(.+?)》/);
+  const movieName = movieNameMatch ? movieNameMatch[1] : resourceInfo.title;
   const prompt = PROMPT_TEMPLATES[templateKey]
     .replace(/{title}/g, resourceInfo.title)
+    .replace(/{movieName}/g, movieName)
     .replace(/{category}/g, resourceInfo.category)
     .replace(/{tags}/g, resourceInfo.tags.join(', '))
     .replace(/{description}/g, resourceInfo.description || '暂无详细描述')
