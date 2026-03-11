@@ -119,10 +119,16 @@ export default function PlatformContentTab() {
         const includesPlatform = scope === 'platform' || scope === 'all'
         setPosts(prev => prev.map(p => {
           if (p._id !== postId) return p
+          const updates: Partial<PostItem> = {}
           if (includesPlatform) {
-            return { ...p, hasPlatformContent: true, platforms: { zhihu: true, wechat: true, xiaohongshu: true, toutiao: true } }
+            updates.hasPlatformContent = true
+            updates.platforms = { zhihu: true, wechat: true, xiaohongshu: true, toutiao: true }
           }
-          return p // scope='main' 不改变平台内容状态
+          // 更新 downloadLink（可能从内容中提取到了）
+          if (data.downloadLink) {
+            updates.downloadLink = data.downloadLink
+          }
+          return { ...p, ...updates }
         }))
         // 如果正在查看这篇且有平台内容返回，更新内容
         if (selectedPost === postId && data.platformContent) {

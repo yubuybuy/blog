@@ -120,7 +120,7 @@ export async function POST(request: NextRequest) {
 
   const post = await sanityClient.fetch(
     `*[_type == "post" && _id == $postId][0] {
-      _id, title, excerpt,
+      _id, title, slug, excerpt,
       categories[]->{ title },
       downloadLink, markdownContent, body, platformContent
     }`,
@@ -175,10 +175,10 @@ export async function POST(request: NextRequest) {
     downloadLink,
   };
 
-  console.log(`[platform-content] 开始生成 (scope=${scope}):`, resourceInfo.title, '| downloadLink:', post.downloadLink || '(空)');
+  console.log(`[platform-content] 开始生成 (scope=${scope}):`, resourceInfo.title, '| downloadLink:', downloadLink || '(空)');
 
   const patchData: Record<string, unknown> = {};
-  const responseData: Record<string, unknown> = { success: true, postId, title: post.title, downloadLink: post.downloadLink || null };
+  const responseData: Record<string, unknown> = { success: true, postId, title: post.title, downloadLink: downloadLink || null };
 
   // 生成主站内容
   if (scope === 'main' || scope === 'all') {
@@ -225,10 +225,13 @@ export async function POST(request: NextRequest) {
     // 刷新网站缓存（主站内容变更时必须）
     if (scope === 'main' || scope === 'all') {
       try {
+        const slug = post.slug?.current || '';
         await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'https://www.sswl.top'}/api/revalidate`, {
-          method: 'POST'
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ slug }),
         });
-        console.log('[platform-content] 缓存刷新成功');
+        console.log('[platform-content] 缓存刷新成功, slug:', slug);
       } catch (e) {
         console.error('[platform-content] 缓存刷新失败:', e instanceof Error ? e.message : e);
       }
