@@ -275,6 +275,10 @@ export default function PlatformContentTab() {
                       {post.categories?.map(c => c.title).join(', ') || '未分类'}
                       {' · '}
                       {new Date(post.publishedAt).toLocaleDateString('zh-CN')}
+                      {post.downloadLink
+                        ? <span className="text-green-600 ml-1" title={post.downloadLink}> · 有链接</span>
+                        : <span className="text-red-400 ml-1"> · 无链接</span>
+                      }
                     </p>
                   </div>
 
