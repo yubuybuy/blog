@@ -8,6 +8,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@sanity/client';
 import { authenticateRequest } from '@/lib/auth';
 import { CURRENT_CONFIG, PROMPT_TEMPLATES } from '@/lib/generation-config';
+import { convertToBlockContent } from '@/lib/markdown-to-blocks';
 
 const sanityClient = createClient({
   projectId: process.env.NEXT_PUBLIC_SANITY_PROJECT_ID!,
@@ -135,6 +136,7 @@ export async function POST(request: NextRequest) {
 
     // 更新主站内容（保留原 title 和 slug 不变）
     patchData.markdownContent = mainResult.data.content;
+    patchData.body = convertToBlockContent(mainResult.data.content);
     patchData.excerpt = mainResult.data.excerpt;
     responseData.mainContent = { excerpt: mainResult.data.excerpt, contentLength: mainResult.data.content.length };
 
@@ -162,6 +164,18 @@ export async function POST(request: NextRequest) {
   if (Object.keys(patchData).length > 0) {
     await sanityClient.patch(postId).set(patchData).commit();
     console.log(`[platform-content] 保存成功 (scope=${scope}):`, resourceInfo.title);
+
+    // 刷新网站缓存（主站内容变更时必须）
+    if (scope === 'main' || scope === 'all') {
+      try {
+        await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'https://www.sswl.top'}/api/revalidate`, {
+          method: 'POST'
+        });
+        console.log('[platform-content] 缓存刷新成功');
+      } catch (e) {
+        console.error('[platform-content] 缓存刷新失败:', e instanceof Error ? e.message : e);
+      }
+    }
   }
 
   return NextResponse.json(responseData);

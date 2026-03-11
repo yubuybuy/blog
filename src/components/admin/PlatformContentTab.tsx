@@ -104,17 +104,21 @@ export default function PlatformContentTab() {
       })
       const data = await resp.json()
       if (data.success && !data.skipped) {
-        // 更新列表状态
-        setPosts(prev => prev.map(p =>
-          p._id === postId
-            ? { ...p, hasPlatformContent: true, platforms: { zhihu: true, wechat: true, xiaohongshu: true, toutiao: true } }
-            : p
-        ))
-        // 如果正在查看这篇，更新内容
-        if (selectedPost === postId) {
+        // 根据 scope 更新列表状态
+        const includesPlatform = scope === 'platform' || scope === 'all'
+        setPosts(prev => prev.map(p => {
+          if (p._id !== postId) return p
+          if (includesPlatform) {
+            return { ...p, hasPlatformContent: true, platforms: { zhihu: true, wechat: true, xiaohongshu: true, toutiao: true } }
+          }
+          return p // scope='main' 不改变平台内容状态
+        }))
+        // 如果正在查看这篇且有平台内容返回，更新内容
+        if (selectedPost === postId && data.platformContent) {
           setPlatformContent(data.platformContent)
         }
-        alert(`"${data.title}" 多平台内容生成成功！`)
+        const scopeLabel = scope === 'main' ? '主站内容' : scope === 'all' ? '全部内容' : '多平台内容'
+        alert(`"${data.title}" ${scopeLabel}生成成功！`)
       } else if (data.skipped) {
         if (selectedPost === postId) {
           setPlatformContent(data.platformContent)
