@@ -54,6 +54,12 @@ export default function Header({ siteSettings }: HeaderProps) {
               <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-blue-600 to-purple-600 group-hover:w-full transition-all duration-300"></span>
             </Link>
             <Link
+              href="/posts"
+              className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-4 py-2 rounded-full text-sm font-medium hover:shadow-md hover:scale-105 transition-all duration-200"
+            >
+              所有文章
+            </Link>
+            <Link
               href="/about"
               className="text-gray-600 hover:text-purple-600 px-3 py-2 text-sm font-medium transition-colors duration-200 relative group"
             >
@@ -136,6 +142,13 @@ export default function Header({ siteSettings }: HeaderProps) {
               className="block px-3 py-3 text-base font-medium text-gray-600 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-all duration-200"
             >
               📂 分类
+            </Link>
+            <Link
+              href="/posts"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="block px-3 py-3 text-base font-semibold text-purple-600 hover:bg-purple-50 rounded-lg transition-all duration-200"
+            >
+              📚 所有文章
             </Link>
             <Link
               href="/about"

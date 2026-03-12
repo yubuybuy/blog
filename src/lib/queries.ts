@@ -47,11 +47,45 @@ export async function getPosts() {
 
   try {
     const posts = await client.fetch(query)
-    // 确保返回数组，即使没有文章
     return posts || []
   } catch (error) {
     console.error('获取文章失败:', error)
     return []
+  }
+}
+
+// 分页获取文章
+export async function getPostsPaginated(page: number = 1, pageSize: number = 12) {
+  const start = (page - 1) * pageSize
+  const end = start + pageSize
+
+  const query = `{
+    "posts": *[_type == "post" && !defined(deleted)] | order(publishedAt desc) [$start...$end] {
+      _id,
+      title,
+      slug,
+      excerpt,
+      publishedAt,
+      mainImage,
+      mainImageUrl,
+      author->{
+        name,
+        image
+      },
+      categories[]->{
+        title,
+        slug
+      }
+    },
+    "total": count(*[_type == "post" && !defined(deleted)])
+  }`
+
+  try {
+    const result = await client.fetch(query, { start, end })
+    return { posts: result.posts || [], total: result.total || 0 }
+  } catch (error) {
+    console.error('获取文章失败:', error)
+    return { posts: [], total: 0 }
   }
 }
 

@@ -43,14 +43,10 @@ export default function PostCard({ post }: PostCardProps) {
 
   const imageUrl = getImageUrl();
 
-  const saveScrollPosition = () => {
-    sessionStorage.setItem('posts-scroll-y', String(window.scrollY))
-  }
-
   return (
     <article className="group bg-white rounded-3xl shadow-sm hover:shadow-2xl overflow-hidden border border-gray-100 hover:border-purple-200 transition-all duration-500 hover:-translate-y-2">
       {imageUrl && (
-        <Link href={`/posts/${post.slug.current}`} onClick={saveScrollPosition}>
+        <Link href={`/posts/${post.slug.current}`}>
           <div className="relative h-40 sm:h-48 md:h-56 w-full overflow-hidden">
             <Image
               src={imageUrl}
@@ -85,7 +81,6 @@ export default function PostCard({ post }: PostCardProps) {
         <h2 className="text-lg sm:text-xl md:text-2xl font-bold mb-3 leading-tight">
           <Link
             href={`/posts/${post.slug.current}`}
-            onClick={saveScrollPosition}
             className="text-gray-900 hover:bg-gradient-to-r hover:from-blue-600 hover:to-purple-600 hover:bg-clip-text hover:text-transparent transition-all duration-300"
           >
             {post.title}
@@ -126,7 +121,6 @@ export default function PostCard({ post }: PostCardProps) {
 
         <Link
           href={`/posts/${post.slug.current}`}
-          onClick={saveScrollPosition}
           className="inline-flex items-center mt-3 sm:mt-4 text-purple-600 hover:text-purple-800 font-semibold text-sm group"
         >
           阅读文章
