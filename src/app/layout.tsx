@@ -1,25 +1,14 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { getSiteSettings } from "@/lib/queries";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
-
 export async function generateMetadata(): Promise<Metadata> {
   const siteSettings = await getSiteSettings();
 
   const siteName = siteSettings?.title || "USEIT库";
-  const description = siteSettings?.heroSubtitle || "分享技术、生活和思考，记录成长的点点滴滴";
+  const description = siteSettings?.heroSubtitle || "网盘资源分享与推荐，涵盖电影、软件、游戏等优质内容";
 
   return {
     title: {
@@ -27,10 +16,10 @@ export async function generateMetadata(): Promise<Metadata> {
       template: `%s - ${siteName}`
     },
     description: description,
-    keywords: ["博客", "技术", "生活", "思考", "前端", "开发", "网盘资源", "分享", "学习笔记", "编程", "web开发", "技术博客"],
-    authors: [{ name: "博客作者" }],
-    creator: "博客作者",
-    publisher: "博客作者",
+    keywords: ["网盘资源", "资源分享", "电影下载", "软件下载", "IMDB电影", "夸克网盘", "游戏资源", "USEIT库"],
+    authors: [{ name: siteName }],
+    creator: siteName,
+    publisher: siteName,
     metadataBase: new URL(process.env.NEXT_PUBLIC_BASE_URL || 'https://www.sswl.top'),
     alternates: {
       canonical: '/',
@@ -69,11 +58,33 @@ export default async function RootLayout({
 }>) {
   // 在服务器端获取网站设置
   const siteSettings = await getSiteSettings();
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://www.sswl.top';
+  const siteName = siteSettings?.title || 'USEIT库';
+
+  const organizationJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Organization',
+    '@id': `${baseUrl}/#organization`,
+    name: siteName,
+    url: baseUrl,
+    logo: {
+      '@type': 'ImageObject',
+      url: `${baseUrl}/logo.png`,
+    },
+    description: siteSettings?.heroSubtitle || '网盘资源分享与推荐，涵盖电影、软件、游戏等优质内容',
+    foundingDate: '2026',
+  };
 
   return (
     <html lang="zh-CN">
+      <head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
+        />
+      </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen flex flex-col`}
+        className="antialiased min-h-screen flex flex-col"
         suppressHydrationWarning={true}
       >
         <Header siteSettings={siteSettings} />

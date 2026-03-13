@@ -4,10 +4,12 @@ import Link from 'next/link'
 import { urlFor } from '@/lib/sanity'
 import { getPost, getPosts, getSiteName, getSiteSettings } from '@/lib/queries'
 import { format } from 'date-fns'
+import { zhCN } from 'date-fns/locale'
 import { notFound } from 'next/navigation'
 import MarkdownImage from '@/components/MarkdownImage'
 import JsonLd from '@/components/JsonLd'
 import Breadcrumbs from '@/components/Breadcrumbs'
+import sanitizeHtml from 'sanitize-html'
 
 interface PostPageProps {
   params: Promise<{ slug: string }>
@@ -65,7 +67,6 @@ export async function generateMetadata({ params }: PostPageProps) {
       title: post.title,
       description: post.excerpt || `阅读关于&ldquo;${post.title}&rdquo;的详细内容`,
       images: [imageUrl],
-      creator: '@yourusername'
     },
     alternates: {
       canonical: `${baseUrl}/posts/${slug}`
@@ -240,8 +241,16 @@ function MarkdownContent({ content }: { content: string }) {
 
         // 处理普通段落（包含链接）
         if (line.trim()) {
+          const htmlContent = line.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="text-blue-600 hover:text-blue-800 underline" target="_blank" rel="noopener noreferrer">$1</a>');
+          const sanitized = sanitizeHtml(htmlContent, {
+            allowedTags: ['a', 'strong', 'em', 'b', 'i', 'code', 'br'],
+            allowedAttributes: {
+              'a': ['href', 'class', 'target', 'rel']
+            },
+            allowedSchemes: ['http', 'https', 'mailto']
+          });
           return <p key={index} className="mb-4 leading-7" dangerouslySetInnerHTML={{
-            __html: line.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="text-blue-600 hover:text-blue-800 underline" target="_blank" rel="noopener noreferrer">$1</a>')
+            __html: sanitized
           }} />;
         }
 
@@ -281,49 +290,61 @@ export default async function PostPage({ params }: PostPageProps) {
   return (
     <>
       <JsonLd type="article" post={post} siteSettings={siteSettings} />
-      <article className="max-w-4xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6 md:py-8">
+      <article className="max-w-3xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
         <Breadcrumbs items={breadcrumbs} />
       {/* Article Header */}
-      <header className="mb-8">
-        <div className="flex flex-wrap gap-2 mb-4">
-          {post.categories?.map((category: { _id: string; slug: { current: string }; title: string }) => (
-            <Link
-              key={category._id}
-              href={`/categories/${category.slug.current}`}
-              className="text-sm bg-blue-100 text-blue-800 px-3 py-1 rounded-full hover:bg-blue-200 transition-colors"
-            >
-              {category.title}
-            </Link>
-          ))}
-        </div>
+      <header className="mb-6">
+        {post.categories && post.categories.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 mb-3">
+            {post.categories.map((category: { _id: string; slug: { current: string }; title: string }) => (
+              <Link
+                key={category._id}
+                href={`/categories/${category.slug.current}`}
+                className="text-xs text-blue-600 bg-blue-50 px-2 py-0.5 rounded hover:bg-blue-100 transition-colors"
+              >
+                {category.title}
+              </Link>
+            ))}
+          </div>
+        )}
 
-        <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
+        <h1 className="article-headline text-2xl sm:text-3xl font-bold text-gray-900 mb-3">
           {post.title}
         </h1>
 
-        <div className="flex items-center text-gray-600 mb-6">
+        {post.excerpt && (
+          <p className="article-summary text-gray-500 mb-4">{post.excerpt}</p>
+        )}
+
+        <div className="flex items-center text-sm text-gray-500 mb-6">
           {post.author?.image && (
-            <div className="relative w-12 h-12 mr-4">
+            <div className="relative w-8 h-8 mr-2">
               <Image
-                src={urlFor(post.author.image).width(48).height(48).url()}
+                src={urlFor(post.author.image).width(32).height(32).url()}
                 alt={post.author.name}
                 fill
                 className="rounded-full object-cover"
               />
             </div>
           )}
-          <div>
-            <p className="font-medium text-gray-900">{post.author?.name}</p>
+          <span className="font-medium text-gray-700">{post.author?.name || '博主'}</span>
             {post.publishedAt && (
-              <time dateTime={post.publishedAt} className="text-sm">
-                {format(new Date(post.publishedAt), 'MMMM dd, yyyy')}
+              <span className="mx-1.5 text-gray-300">|</span>
+            )}
+            {post.publishedAt && (
+              <time dateTime={post.publishedAt}>
+                {format(new Date(post.publishedAt), 'yyyy年M月d日', { locale: zhCN })}
               </time>
             )}
-          </div>
+            {post._updatedAt && post._updatedAt !== post.publishedAt && (
+              <span className="text-xs text-gray-400 ml-1.5">
+                (更新于 {format(new Date(post._updatedAt), 'yyyy年M月d日', { locale: zhCN })})
+              </span>
+            )}
         </div>
 
         {post.mainImage && (
-          <div className="relative h-64 md:h-96 mb-8">
+          <div className="relative h-48 sm:h-64 md:h-80 mb-6">
             <Image
               src={urlFor(post.mainImage).width(1200).height(600).url()}
               alt={post.mainImage.alt || post.title}
@@ -350,12 +371,12 @@ export default async function PostPage({ params }: PostPageProps) {
 
       {/* Author Bio */}
       {post.author?.bio && (
-        <footer className="mt-12 pt-8 border-t border-gray-200">
-          <div className="flex items-start">
+        <footer className="mt-8 pt-6 border-t border-gray-200">
+          <div className="flex items-start gap-3">
             {post.author.image && (
-              <div className="relative w-16 h-16 mr-4 flex-shrink-0">
+              <div className="relative w-10 h-10 shrink-0">
                 <Image
-                  src={urlFor(post.author.image).width(64).height(64).url()}
+                  src={urlFor(post.author.image).width(40).height(40).url()}
                   alt={post.author.name}
                   fill
                   className="rounded-full object-cover"
@@ -363,10 +384,10 @@ export default async function PostPage({ params }: PostPageProps) {
               </div>
             )}
             <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                关于 {post.author.name}
+              <h3 className="text-sm font-semibold text-gray-900 mb-1">
+                {post.author.name}
               </h3>
-              <div className="text-gray-600">
+              <div className="text-sm text-gray-500">
                 <PortableText value={post.author.bio} />
               </div>
             </div>
@@ -374,20 +395,15 @@ export default async function PostPage({ params }: PostPageProps) {
         </footer>
       )}
 
-      {/* 相关文章推荐 */}
+      {/* 相关内容 */}
       {post.categories && post.categories.length > 0 && (
-        <section className="mt-8 sm:mt-12 pt-6 sm:pt-8 border-t border-gray-200">
-          <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-4">
-            相关文章
-          </h3>
-          <div className="text-sm text-gray-600">
-            <Link
-              href={`/categories/${post.categories[0].slug.current}`}
-              className="text-blue-600 hover:text-blue-800 underline"
-            >
-              查看更多{post.categories[0].title}相关文章 →
-            </Link>
-          </div>
+        <section className="mt-6 pt-6 border-t border-gray-200">
+          <Link
+            href={`/categories/${post.categories[0].slug.current}`}
+            className="text-sm text-blue-600 hover:text-blue-800 transition-colors"
+          >
+            查看更多「{post.categories[0].title}」相关内容 &rarr;
+          </Link>
         </section>
       )}
     </article>

@@ -53,19 +53,26 @@ node scripts/generate-password-hash.js
 
 ```env
 # 1. 添加密码哈希（从步骤1复制）
-BOSS_PASSWORD_HASH=$2b$12$xxx...（你生成的哈希）
+BOSS_PASSWORD_HASH=（粘贴你生成的 bcrypt 哈希）
 
 # 2. 添加 JWT 密钥（从步骤1复制）
-JWT_SECRET=你生成的64位随机字符串
+JWT_SECRET=（粘贴你生成的64位随机字符串）
 
-# 3. 保留旧密码（临时兼容）
-BOSS_AI_PASSWORD=Hsta3879
+# 3. 管理员用户名
+BOSS_USERNAME=（你的用户名）
 
-# 4. 其他配置保持不变
-BOSS_USERNAME=gao-huan
-NEXT_PUBLIC_SANITY_PROJECT_ID=w7iihdoh
-# ... 其他配置
+# 4. Sanity 项目配置
+NEXT_PUBLIC_SANITY_PROJECT_ID=（你的 Sanity 项目 ID）
+NEXT_PUBLIC_SANITY_DATASET=production
+SANITY_API_TOKEN=（你的 Sanity API Token）
+
+# 5. 其他服务配置（根据需要添加）
+# BAIDU_API_KEY=...
+# ZHIPU_API_KEY=...
+# GEMINI_API_KEY=...
 ```
+
+> **重要**: 绝不要在代码仓库中提交真实的密码、密钥或 Token。所有敏感信息必须通过环境变量配置。
 
 ---
 

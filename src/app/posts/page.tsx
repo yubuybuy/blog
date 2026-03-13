@@ -8,12 +8,12 @@ const PAGE_SIZE = 12
 export async function generateMetadata() {
   const siteName = await getSiteName()
   return {
-    title: `所有文章 - ${siteName}`,
-    description: '浏览所有博客文章',
+    title: `全部资源 - ${siteName}`,
+    description: '浏览所有网盘资源',
   }
 }
 
-export const revalidate = 0
+export const revalidate = 60
 
 export default async function PostsPage({ searchParams }: { searchParams: Promise<{ page?: string }> }) {
   const params = await searchParams
@@ -22,62 +22,49 @@ export default async function PostsPage({ searchParams }: { searchParams: Promis
   const totalPages = Math.ceil(total / PAGE_SIZE)
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="text-center mb-12">
-        <h1 className="text-3xl font-bold text-gray-900 mb-4">
-          所有文章
-        </h1>
-        <p className="text-gray-600">
-          共 {total} 篇文章，第 {currentPage}/{totalPages} 页
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-gray-900 mb-1">全部资源</h1>
+        <p className="text-sm text-gray-500">
+          共 {total} 个资源，第 {currentPage}/{totalPages} 页
         </p>
       </div>
 
       {posts && posts.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
           {posts.map((post: Post) => (
             <PostCard key={post._id} post={post} />
           ))}
         </div>
       ) : (
-        <div className="text-center py-12">
-          <h3 className="text-xl font-semibold text-gray-900 mb-2">
-            还没有文章
-          </h3>
-          <p className="text-gray-600">
-            请先在Sanity CMS中添加一些文章内容
-          </p>
-        </div>
+        <div className="text-center py-12 text-gray-500">暂无内容</div>
       )}
 
-      {/* 分页控件 */}
+      {/* Pagination */}
       {totalPages > 1 && (
-        <nav className="flex justify-center items-center gap-2 mt-12">
-          {/* 上一页 */}
+        <nav className="flex justify-center items-center gap-1 mt-8">
           {currentPage > 1 ? (
             <Link
               href={`/posts?page=${currentPage - 1}`}
-              className="px-4 py-2 rounded-lg bg-white border border-gray-200 text-gray-700 hover:border-purple-300 hover:text-purple-600 transition-all duration-200"
+              className="px-3 py-1.5 rounded text-sm text-gray-600 hover:bg-gray-100 transition-colors"
             >
               上一页
             </Link>
           ) : (
-            <span className="px-4 py-2 rounded-lg bg-gray-50 border border-gray-100 text-gray-300 cursor-not-allowed">
-              上一页
-            </span>
+            <span className="px-3 py-1.5 rounded text-sm text-gray-300">上一页</span>
           )}
 
-          {/* 页码 */}
           {generatePageNumbers(currentPage, totalPages).map((p, i) =>
             p === '...' ? (
-              <span key={`dot-${i}`} className="px-2 text-gray-400">...</span>
+              <span key={`dot-${i}`} className="px-2 text-gray-300 text-sm">...</span>
             ) : (
               <Link
                 key={p}
                 href={`/posts?page=${p}`}
-                className={`w-10 h-10 flex items-center justify-center rounded-lg text-sm font-medium transition-all duration-200 ${
+                className={`w-8 h-8 flex items-center justify-center rounded text-sm transition-colors ${
                   currentPage === p
-                    ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-md'
-                    : 'bg-white border border-gray-200 text-gray-700 hover:border-purple-300 hover:text-purple-600'
+                    ? 'bg-blue-600 text-white'
+                    : 'text-gray-600 hover:bg-gray-100'
                 }`}
               >
                 {p}
@@ -85,18 +72,15 @@ export default async function PostsPage({ searchParams }: { searchParams: Promis
             )
           )}
 
-          {/* 下一页 */}
           {currentPage < totalPages ? (
             <Link
               href={`/posts?page=${currentPage + 1}`}
-              className="px-4 py-2 rounded-lg bg-white border border-gray-200 text-gray-700 hover:border-purple-300 hover:text-purple-600 transition-all duration-200"
+              className="px-3 py-1.5 rounded text-sm text-gray-600 hover:bg-gray-100 transition-colors"
             >
               下一页
             </Link>
           ) : (
-            <span className="px-4 py-2 rounded-lg bg-gray-50 border border-gray-100 text-gray-300 cursor-not-allowed">
-              下一页
-            </span>
+            <span className="px-3 py-1.5 rounded text-sm text-gray-300">下一页</span>
           )}
         </nav>
       )}
@@ -104,32 +88,16 @@ export default async function PostsPage({ searchParams }: { searchParams: Promis
   )
 }
 
-// 生成页码数组，如: [1, 2, '...', 5, 6, 7, '...', 10, 11]
 function generatePageNumbers(current: number, total: number): (number | string)[] {
   if (total <= 7) {
     return Array.from({ length: total }, (_, i) => i + 1)
   }
-
-  const pages: (number | string)[] = []
-
-  // 始终显示第 1 页
-  pages.push(1)
-
-  if (current > 3) {
-    pages.push('...')
-  }
-
-  // 当前页附近
+  const pages: (number | string)[] = [1]
+  if (current > 3) pages.push('...')
   for (let i = Math.max(2, current - 1); i <= Math.min(total - 1, current + 1); i++) {
     pages.push(i)
   }
-
-  if (current < total - 2) {
-    pages.push('...')
-  }
-
-  // 始终显示最后一页
+  if (current < total - 2) pages.push('...')
   pages.push(total)
-
   return pages
 }

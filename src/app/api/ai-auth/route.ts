@@ -55,31 +55,10 @@ export async function POST(request: NextRequest) {
     const hashedPassword = process.env.BOSS_PASSWORD_HASH;
 
     if (!hashedPassword) {
-      console.error('❌ 环境变量 BOSS_PASSWORD_HASH 未设置');
-      console.error('💡 请运行: node scripts/generate-password-hash.js 来生成密码哈希');
-
-      // 临时兼容：如果没有哈希密码，尝试使用明文密码（仅开发环境）
-      const plainPassword = process.env.BOSS_AI_PASSWORD;
-      if (plainPassword && password === plainPassword) {
-        console.warn('⚠️ 警告：使用明文密码验证（不安全），请尽快生成密码哈希！');
-        resetLoginAttempts(clientId);
-
-        const token = generateToken({
-          userId: 'boss-admin',
-          username: process.env.BOSS_USERNAME || 'admin'
-        });
-
-        return NextResponse.json({
-          success: true,
-          token: token,
-          message: '验证成功（临时模式）',
-          warning: '请尽快配置密码哈希以提高安全性'
-        });
-      }
-
+      console.error('BOSS_PASSWORD_HASH 环境变量未设置，请运行: node scripts/generate-password-hash.js');
       return NextResponse.json({
         success: false,
-        error: '服务器配置错误'
+        error: '服务器配置错误，请联系管理员'
       }, { status: 500 });
     }
 
@@ -129,7 +108,6 @@ export async function POST(request: NextRequest) {
 export async function GET() {
   return NextResponse.json({
     status: 'AI认证API正常运行',
-    hasPassword: !!process.env.BOSS_AI_PASSWORD,
     timestamp: new Date().toISOString()
   });
 }

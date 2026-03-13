@@ -20,7 +20,7 @@ export default function robots(): MetadataRoute.Robots {
       },
       // 明确允许 AI 爬虫
       {
-        userAgent: ['GPTBot', 'ChatGPT-User', 'ClaudeBot', 'Claude-Web', 'PerplexityBot', 'Google-Extended', 'Applebot-Extended', 'cohere-ai', 'Meta-ExternalAgent', 'Bytespider', 'CCBot'],
+        userAgent: ['GPTBot', 'ChatGPT-User', 'OAI-SearchBot', 'ClaudeBot', 'Claude-Web', 'Claude-SearchBot', 'Claude-User', 'PerplexityBot', 'Perplexity-User', 'Google-Extended', 'Applebot-Extended', 'cohere-ai', 'Meta-ExternalAgent', 'Bytespider', 'CCBot'],
         allow: '/',
       },
     ],

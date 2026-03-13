@@ -3,94 +3,51 @@ import { getSiteSettings } from '@/lib/queries'
 
 export default async function Footer() {
   const siteSettings = await getSiteSettings()
-
-  const settings = siteSettings || {
-    title: '个人博客',
-    footerDescription: '记录生活点滴，分享所思所想，与世界保持连接。',
-    email: 'hello@example.com',
-    github: 'https://github.com',
-    twitter: 'https://twitter.com',
-    copyrightText: '用心记录，温暖分享.'
-  }
+  const siteName = siteSettings?.title || 'USEIT库'
 
   return (
-    <footer className="bg-gray-50 border-t">
-      <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">{settings.title}</h3>
-            <p className="text-gray-600">
-              {settings.footerDescription}
+    <footer className="bg-gray-50 border-t border-gray-200">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 sm:py-10">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-6">
+          {/* Site info */}
+          <div className="max-w-sm">
+            <h3 className="font-semibold text-gray-900 mb-1">{siteName}</h3>
+            <p className="text-sm text-gray-500">
+              {siteSettings?.footerDescription || '网盘资源分享与推荐，涵盖电影、软件、游戏等优质内容。'}
             </p>
           </div>
 
-          <div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">站点导航</h3>
-            <ul className="space-y-2">
-              <li>
-                <Link href="/" className="text-gray-600 hover:text-gray-900">
-                  首页
-                </Link>
-              </li>
-              <li>
-                <Link href="/categories" className="text-gray-600 hover:text-gray-900">
-                  文章分类
-                </Link>
-              </li>
-              <li>
-                <Link href="/posts" className="text-gray-600 hover:text-gray-900">
-                  所有文章
-                </Link>
-              </li>
-              <li>
-                <Link href="/about" className="text-gray-600 hover:text-gray-900">
-                  关于我
-                </Link>
-              </li>
-            </ul>
-          </div>
-
-          <div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">联系我</h3>
-            <ul className="space-y-2">
-              {settings.email && (
-                <li className="text-gray-600">
-                  邮箱：{settings.email}
-                </li>
-              )}
-              {settings.github && (
-                <li>
-                  <a href={settings.github} target="_blank" rel="noopener noreferrer" className="text-gray-600 hover:text-gray-900">
-                    GitHub
-                  </a>
-                </li>
-              )}
-              {settings.twitter && (
-                <li>
-                  <a href={settings.twitter} target="_blank" rel="noopener noreferrer" className="text-gray-600 hover:text-gray-900">
-                    Twitter
-                  </a>
-                </li>
-              )}
-            </ul>
+          {/* Links */}
+          <div className="flex gap-8 text-sm">
+            <div>
+              <h4 className="font-medium text-gray-900 mb-2">导航</h4>
+              <ul className="space-y-1.5">
+                <li><Link href="/" className="text-gray-500 hover:text-gray-900 transition-colors">首页</Link></li>
+                <li><Link href="/posts" className="text-gray-500 hover:text-gray-900 transition-colors">全部资源</Link></li>
+                <li><Link href="/categories" className="text-gray-500 hover:text-gray-900 transition-colors">分类浏览</Link></li>
+                <li><Link href="/about" className="text-gray-500 hover:text-gray-900 transition-colors">关于本站</Link></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-medium text-gray-900 mb-2">其他</h4>
+              <ul className="space-y-1.5">
+                <li><Link href="/copyright" className="text-gray-500 hover:text-gray-900 transition-colors">版权声明</Link></li>
+                {siteSettings?.email && (
+                  <li><a href={`mailto:${siteSettings.email}`} className="text-gray-500 hover:text-gray-900 transition-colors">联系邮箱</a></li>
+                )}
+              </ul>
+            </div>
           </div>
         </div>
 
-        <div className="mt-8 border-t border-gray-200 pt-8">
-          <div className="text-center space-y-2">
-            <p className="text-sm text-gray-600">
-              <strong>⚠️ 免责声明：</strong>
-              本站仅提供信息分享交流，所有资源均来源于网络，仅供学习参考使用。
-              如有版权问题，请联系删除。支持正版，尊重版权。
-            </p>
-            <p className="text-center text-gray-500 space-x-4">
-              © {new Date().getFullYear()} {settings.title}. {settings.copyrightText}
-              <span className="text-gray-300">|</span>
-              <Link href="/copyright" className="text-blue-600 hover:text-blue-800 underline">
-                版权声明
-              </Link>
-            </p>
-          </div>
+        {/* Bottom */}
+        <div className="mt-8 pt-6 border-t border-gray-200 text-xs text-gray-400 space-y-2">
+          <p>
+            本站仅提供信息分享，所有资源来源于网络，仅供学习参考。如有版权问题请联系删除。
+          </p>
+          <p>
+            &copy; {new Date().getFullYear()} {siteName}{siteSettings?.copyrightText ? ` - ${siteSettings.copyrightText}` : ''}
+          </p>
         </div>
       </div>
     </footer>

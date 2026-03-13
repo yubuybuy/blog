@@ -53,6 +53,7 @@ export default function JsonLd({ post, siteSettings, type, breadcrumbs }: JsonLd
           },
           publisher: {
             '@type': 'Organization',
+            '@id': `${baseUrl}/#organization`,
             name: siteName,
             url: baseUrl,
             logo: {
@@ -77,7 +78,7 @@ export default function JsonLd({ post, siteSettings, type, breadcrumbs }: JsonLd
             description: post.excerpt || post.title,
             image: post.mainImageUrl || (post.mainImage ? `${baseUrl}/api/placeholder?text=${encodeURIComponent(post.title.slice(0, 10))}&width=1200&height=630` : undefined),
             datePublished: post.publishedAt,
-            dateModified: post.publishedAt,
+            dateModified: post._updatedAt || post.publishedAt,
             author: {
               '@type': 'Person',
               name: post.author?.name || '博主',
@@ -85,6 +86,7 @@ export default function JsonLd({ post, siteSettings, type, breadcrumbs }: JsonLd
             },
             publisher: {
               '@type': 'Organization',
+              '@id': `${baseUrl}/#organization`,
               name: siteName,
               url: baseUrl,
               logo: {
@@ -97,7 +99,11 @@ export default function JsonLd({ post, siteSettings, type, breadcrumbs }: JsonLd
               '@id': `${baseUrl}/posts/${post.slug.current}`
             },
             articleSection: post.categories?.map(cat => cat.title) || [],
-            keywords: post.categories?.map(cat => cat.title).join(', ') || ''
+            keywords: post.categories?.map(cat => cat.title).join(', ') || '',
+            speakable: {
+              '@type': 'SpeakableSpecification',
+              cssSelector: ['.article-headline', '.article-summary']
+            }
           }
         ]
 

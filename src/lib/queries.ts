@@ -93,6 +93,7 @@ export async function getPost(slug: string) {
   const query = `
     *[_type == "post" && slug.current == $slug && !defined(deleted)][0] {
       _id,
+      _updatedAt,
       title,
       slug,
       excerpt,

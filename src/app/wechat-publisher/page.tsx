@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import sanitizeHtml from 'sanitize-html';
 
 interface WeChatArticle {
   title: string;
@@ -274,7 +275,15 @@ export default function WeChatPublisherPage() {
                   <div
                     id="wechat-content"
                     className="prose prose-sm max-w-none border border-gray-200 rounded-lg p-6 bg-gray-50"
-                    dangerouslySetInnerHTML={{ __html: selectedArticle.content }}
+                    dangerouslySetInnerHTML={{ __html: sanitizeHtml(selectedArticle.content, {
+                      allowedTags: sanitizeHtml.defaults.allowedTags.concat(['img', 'h1', 'h2', 'figure', 'figcaption']),
+                      allowedAttributes: {
+                        ...sanitizeHtml.defaults.allowedAttributes,
+                        'img': ['src', 'alt', 'width', 'height', 'style', 'class'],
+                        '*': ['class', 'style']
+                      },
+                      allowedSchemes: ['http', 'https', 'data']
+                    }) }}
                   />
                 </div>
               </div>

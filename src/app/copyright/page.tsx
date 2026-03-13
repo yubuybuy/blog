@@ -1,5 +1,7 @@
 import { getSiteName } from '@/lib/queries'
 
+export const revalidate = 3600
+
 export async function generateMetadata() {
   const siteName = await getSiteName()
   return {

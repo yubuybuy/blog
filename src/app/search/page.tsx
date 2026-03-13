@@ -16,7 +16,6 @@ function SearchResults() {
   const cache = useRef<Map<string, Post[]>>(new Map())
   const debounceTimer = useRef<ReturnType<typeof setTimeout>>(null)
 
-  // 从 URL 参数初始化输入值
   useEffect(() => {
     const q = searchParams.get('q') || ''
     if (q) {
@@ -35,7 +34,6 @@ function SearchResults() {
 
     setSearched(true)
 
-    // 缓存命中，秒出
     const cached = cache.current.get(trimmed)
     if (cached) {
       setPosts(cached)
@@ -58,14 +56,11 @@ function SearchResults() {
     const value = e.target.value
     setInputValue(value)
 
-    // 清除之前的防抖定时器
     if (debounceTimer.current) {
       clearTimeout(debounceTimer.current)
     }
 
-    // 300ms 防抖
     debounceTimer.current = setTimeout(() => {
-      // 更新 URL 参数（不触发页面刷新）
       const params = new URLSearchParams(searchParams.toString())
       if (value.trim()) {
         params.set('q', value.trim())
@@ -77,7 +72,6 @@ function SearchResults() {
     }, 300)
   }, [searchParams, router, doSearch])
 
-  // 清理定时器
   useEffect(() => {
     return () => {
       if (debounceTimer.current) {
@@ -88,67 +82,46 @@ function SearchResults() {
 
   return (
     <>
-      {/* 内联搜索框 */}
-      <div className="max-w-2xl mx-auto mb-10">
+      <div className="max-w-lg mx-auto mb-8">
         <div className="relative">
           <input
             type="text"
             value={inputValue}
             onChange={handleInputChange}
-            placeholder="输入关键词搜索文章..."
+            placeholder="输入关键词搜索..."
             autoFocus
-            className="w-full px-6 py-4 text-lg rounded-2xl border border-gray-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100 outline-none transition-all duration-300 bg-white shadow-sm"
+            className="w-full px-4 py-3 pl-10 bg-white border border-gray-200 rounded-lg text-sm focus:border-blue-300 focus:ring-1 focus:ring-blue-300 outline-none transition-all"
           />
-          <svg
-            className="absolute right-5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
+          <svg className="absolute left-3.5 top-3.5 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
         </div>
       </div>
 
       {!searched ? (
-        <div className="text-center py-12">
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">
-            输入关键词搜索文章
-          </h2>
-          <p className="text-gray-600">
-            在所有文章中查找您感兴趣的内容
-          </p>
+        <div className="text-center py-12 text-gray-400">
+          输入关键词搜索资源
         </div>
       ) : loading ? (
         <div className="text-center py-12">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-          <p className="mt-4 text-gray-600">搜索中...</p>
+          <div className="inline-block animate-spin rounded-full h-6 w-6 border-2 border-gray-200 border-t-blue-600"></div>
+          <p className="mt-3 text-sm text-gray-500">搜索中...</p>
         </div>
       ) : (
         <>
-          <div className="mb-8">
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">
-              搜索结果
-            </h2>
-            <p className="text-gray-600">
-              为 &ldquo;{inputValue.trim()}&rdquo; 找到 {posts.length} 篇文章
-            </p>
-          </div>
+          <p className="text-sm text-gray-500 mb-4">
+            找到 {posts.length} 个关于「{inputValue.trim()}」的结果
+          </p>
 
           {posts.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
               {posts.map((post: Post) => (
                 <PostCard key={post._id} post={post} />
               ))}
             </div>
           ) : (
-            <div className="text-center py-12">
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                未找到相关文章
-              </h3>
-              <p className="text-gray-600">
-                尝试使用不同的关键词搜索
-              </p>
+            <div className="text-center py-12 text-gray-500">
+              未找到相关内容，试试其他关键词
             </div>
           )}
         </>
@@ -159,19 +132,15 @@ function SearchResults() {
 
 export default function SearchPage() {
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="text-center mb-12">
-        <h1 className="text-3xl font-bold text-gray-900 mb-4">
-          搜索文章
-        </h1>
-        <p className="text-gray-600">
-          在所有文章中查找您需要的内容
-        </p>
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-gray-900 mb-1">搜索</h1>
+        <p className="text-sm text-gray-500">在所有资源中查找</p>
       </div>
 
       <Suspense fallback={
         <div className="text-center py-12">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <div className="inline-block animate-spin rounded-full h-6 w-6 border-2 border-gray-200 border-t-blue-600"></div>
         </div>
       }>
         <SearchResults />
