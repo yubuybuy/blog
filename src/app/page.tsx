@@ -1,5 +1,5 @@
 import PostCard from '@/components/PostCard'
-import { getPosts, getCategories, getSiteSettings } from '@/lib/queries'
+import { getPostsPaginated, getCategories, getSiteSettings } from '@/lib/queries'
 import { Post, Category, SiteSettings } from '@/types'
 import Link from 'next/link'
 import JsonLd from '@/components/JsonLd'
@@ -7,8 +7,8 @@ import JsonLd from '@/components/JsonLd'
 export const revalidate = 0 // 禁用缓存，确保获取最新文章
 
 export default async function Home() {
-  const [posts, categories, siteSettings] = await Promise.all([
-    getPosts(),
+  const [{ posts, total }, categories, siteSettings] = await Promise.all([
+    getPostsPaginated(1, 6),
     getCategories(),
     getSiteSettings()
   ])
@@ -76,18 +76,36 @@ export default async function Home() {
             <h2 className="text-xl sm:text-2xl font-bold text-gray-900">最新文章</h2>
             <Link
               href="/posts"
-              className="text-blue-600 hover:text-blue-800 font-medium"
+              className="inline-flex items-center gap-1 bg-gradient-to-r from-blue-600 to-purple-600 text-white px-5 py-2 rounded-full font-medium text-sm hover:shadow-md hover:scale-105 transition-all duration-200"
             >
-              查看全部 →
+              查看全部 {total} 篇
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
             </Link>
           </div>
 
           {posts && posts.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
-              {posts.slice(0, 6).map((post: Post) => (
-                <PostCard key={post._id} post={post} />
-              ))}
-            </div>
+            <>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
+                {posts.map((post: Post) => (
+                  <PostCard key={post._id} post={post} />
+                ))}
+              </div>
+
+              {/* 底部居中的查看更多按钮 */}
+              <div className="text-center mt-10">
+                <Link
+                  href="/posts"
+                  className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-3 rounded-full font-semibold text-base hover:shadow-lg hover:scale-105 transition-all duration-300"
+                >
+                  查看全部 {total} 篇文章
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5-5 5" />
+                  </svg>
+                </Link>
+              </div>
+            </>
           ) : (
             <div className="text-center py-8 sm:py-12">
               <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2">

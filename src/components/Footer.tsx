@@ -38,6 +38,11 @@ export default async function Footer() {
                 </Link>
               </li>
               <li>
+                <Link href="/posts" className="text-gray-600 hover:text-gray-900">
+                  所有文章
+                </Link>
+              </li>
+              <li>
                 <Link href="/about" className="text-gray-600 hover:text-gray-900">
                   关于我
                 </Link>
