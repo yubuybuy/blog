@@ -40,14 +40,14 @@ async function initSiteSettings() {
     // 创建初始设置
     const newSettings = {
       _type: 'siteSettings',
-      title: 'USEIT库',
-      heroTitle: '欢迎来到我的博客',
-      heroSubtitle: '分享技术、生活与思考',
-      footerDescription: '一个专注于分享优质内容的个人博客',
+      title: '觅库',
+      heroTitle: '发现好资源，从这里开始',
+      heroSubtitle: '精选电影、软件、游戏等网盘资源，持续更新中',
+      footerDescription: '觅库 — 精选网盘资源推荐与分享',
       email: 'your-email@example.com',
       github: 'https://github.com/yourusername',
       twitter: 'https://twitter.com/yourusername',
-      copyrightText: '© 2025 USEIT库. All rights reserved.',
+      copyrightText: '觅库 - 发现好资源',
     }
 
     const result = await client.create(newSettings)

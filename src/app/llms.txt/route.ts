@@ -32,7 +32,7 @@ export async function GET() {
     `)
   ])
 
-  const siteName = siteSettings?.title || 'USEIT库'
+  const siteName = siteSettings?.title || '觅库'
   const siteDesc = siteSettings?.heroSubtitle || '中文网盘资源分享博客'
 
   let content = `# ${siteName} (${baseUrl})\n\n`

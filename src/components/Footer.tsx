@@ -3,7 +3,7 @@ import { getSiteSettings } from '@/lib/queries'
 
 export default async function Footer() {
   const siteSettings = await getSiteSettings()
-  const siteName = siteSettings?.title || 'USEIT库'
+  const siteName = siteSettings?.title || '觅库'
 
   return (
     <footer className="bg-gray-50 border-t border-gray-200">
@@ -13,7 +13,7 @@ export default async function Footer() {
           <div className="max-w-sm">
             <h3 className="font-semibold text-gray-900 mb-1">{siteName}</h3>
             <p className="text-sm text-gray-500">
-              {siteSettings?.footerDescription || '网盘资源分享与推荐，涵盖电影、软件、游戏等优质内容。'}
+              {siteSettings?.footerDescription || '精选电影、软件、游戏等网盘资源，持续更新中。'}
             </p>
           </div>
 

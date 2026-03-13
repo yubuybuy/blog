@@ -21,7 +21,7 @@ export async function getSiteSettings() {
 // 获取网站名称的辅助函数
 export async function getSiteName(): Promise<string> {
   const settings = await getSiteSettings()
-  return settings?.title || 'USEIT库'
+  return settings?.title || '觅库'
 }
 
 export async function getPosts() {

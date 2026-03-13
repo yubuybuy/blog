@@ -6,13 +6,13 @@ export async function generateMetadata() {
   const siteName = await getSiteName()
   return {
     title: `关于 - ${siteName}`,
-    description: '了解USEIT库 — 一个专注于网盘资源分享的中文博客',
+    description: '了解觅库 — 一个专注于网盘资源分享的中文博客',
   }
 }
 
 export default async function AboutPage() {
   const siteSettings = await getSiteSettings()
-  const siteName = siteSettings?.title || 'USEIT库'
+  const siteName = siteSettings?.title || '觅库'
 
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8 sm:py-12">

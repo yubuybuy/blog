@@ -31,7 +31,7 @@ function extractFaqFromContent(content: string): Array<{ question: string; answe
 
 export default function JsonLd({ post, siteSettings, type, breadcrumbs }: JsonLdProps) {
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://www.sswl.top'
-  const siteName = siteSettings?.title || 'USEIT库'
+  const siteName = siteSettings?.title || '觅库'
   const siteDescription = siteSettings?.heroSubtitle || '分享技术、生活和思考，记录成长的点点滴滴'
 
   const generateJsonLd = () => {

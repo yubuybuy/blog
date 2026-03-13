@@ -23,7 +23,7 @@ export default function Header({ siteSettings }: HeaderProps) {
     }
   }
 
-  const siteName = siteSettings?.title || 'USEIT库'
+  const siteName = siteSettings?.title || '觅库'
 
   const navLinks = [
     { href: '/', label: '首页' },

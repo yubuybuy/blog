@@ -7,8 +7,8 @@ import { getSiteSettings } from "@/lib/queries";
 export async function generateMetadata(): Promise<Metadata> {
   const siteSettings = await getSiteSettings();
 
-  const siteName = siteSettings?.title || "USEIT库";
-  const description = siteSettings?.heroSubtitle || "网盘资源分享与推荐，涵盖电影、软件、游戏等优质内容";
+  const siteName = siteSettings?.title || "觅库";
+  const description = siteSettings?.heroSubtitle || "精选电影、软件、游戏等网盘资源，持续更新中";
 
   return {
     title: {
@@ -16,7 +16,7 @@ export async function generateMetadata(): Promise<Metadata> {
       template: `%s - ${siteName}`
     },
     description: description,
-    keywords: ["网盘资源", "资源分享", "电影下载", "软件下载", "IMDB电影", "夸克网盘", "游戏资源", "USEIT库"],
+    keywords: ["网盘资源", "资源分享", "电影下载", "软件下载", "IMDB电影", "夸克网盘", "游戏资源", "觅库"],
     authors: [{ name: siteName }],
     creator: siteName,
     publisher: siteName,
@@ -59,7 +59,7 @@ export default async function RootLayout({
   // 在服务器端获取网站设置
   const siteSettings = await getSiteSettings();
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://www.sswl.top';
-  const siteName = siteSettings?.title || 'USEIT库';
+  const siteName = siteSettings?.title || '觅库';
 
   const organizationJsonLd = {
     '@context': 'https://schema.org',
@@ -71,7 +71,7 @@ export default async function RootLayout({
       '@type': 'ImageObject',
       url: `${baseUrl}/logo.png`,
     },
-    description: siteSettings?.heroSubtitle || '网盘资源分享与推荐，涵盖电影、软件、游戏等优质内容',
+    description: siteSettings?.heroSubtitle || '精选电影、软件、游戏等网盘资源，持续更新中',
     foundingDate: '2026',
   };
 

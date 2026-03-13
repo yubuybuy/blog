@@ -14,9 +14,9 @@ export default async function Home() {
   ])
 
   const settings: SiteSettings = siteSettings || {
-    title: 'USEIT库',
-    heroTitle: '网盘资源分享',
-    heroSubtitle: '电影、软件、游戏等优质资源推荐与下载'
+    title: '觅库',
+    heroTitle: '发现好资源，从这里开始',
+    heroSubtitle: '精选电影、软件、游戏等网盘资源，持续更新中'
   }
 
   return (
