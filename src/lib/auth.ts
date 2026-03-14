@@ -2,11 +2,8 @@
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 
-// JWT 配置
-const JWT_SECRET = process.env.JWT_SECRET;
-if (!JWT_SECRET) {
-  throw new Error('🔒 安全错误: JWT_SECRET 环境变量未设置！请在 .env.local 中配置 JWT_SECRET');
-}
+// JWT 配置（延迟检查，避免构建时报错）
+const JWT_SECRET = process.env.JWT_SECRET || '';
 const JWT_EXPIRES_IN = '24h'; // Token 24小时过期
 
 // 密码哈希轮数（越高越安全，但越慢）
@@ -45,7 +42,10 @@ export async function verifyPassword(
  * @returns JWT Token 字符串
  */
 export function generateToken(payload: { userId: string; username: string }): string {
-  return jwt.sign(payload, JWT_SECRET as string, {
+  if (!JWT_SECRET) {
+    throw new Error('JWT_SECRET 环境变量未设置');
+  }
+  return jwt.sign(payload, JWT_SECRET, {
     expiresIn: JWT_EXPIRES_IN,
     issuer: 'netdisk-blog',
     audience: 'boss-admin',
@@ -59,7 +59,7 @@ export function generateToken(payload: { userId: string; username: string }): st
  */
 export function verifyToken(token: string): { userId: string; username: string } | null {
   try {
-    const decoded = jwt.verify(token, JWT_SECRET as string, {
+    const decoded = jwt.verify(token, JWT_SECRET, {
       issuer: 'netdisk-blog',
       audience: 'boss-admin',
     }) as { userId: string; username: string };

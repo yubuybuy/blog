@@ -53,17 +53,24 @@ export async function POST(request: NextRequest) {
 
     // 从环境变量读取哈希后的密码
     const hashedPassword = process.env.BOSS_PASSWORD_HASH;
+    const plainPassword = process.env.BOSS_AI_PASSWORD;
 
-    if (!hashedPassword) {
-      console.error('BOSS_PASSWORD_HASH 环境变量未设置，请运行: node scripts/generate-password-hash.js');
+    if (!hashedPassword && !plainPassword) {
+      console.error('BOSS_PASSWORD_HASH 或 BOSS_AI_PASSWORD 环境变量未设置');
       return NextResponse.json({
         success: false,
         error: '服务器配置错误，请联系管理员'
       }, { status: 500 });
     }
 
-    // 验证密码
-    const isValid = await verifyPassword(password, hashedPassword);
+    // 验证密码：优先使用哈希比对，回退到明文比对
+    let isValid = false;
+    if (hashedPassword) {
+      isValid = await verifyPassword(password, hashedPassword);
+    } else if (plainPassword) {
+      console.warn('⚠️ 使用明文密码验证，请尽快设置 BOSS_PASSWORD_HASH 环境变量');
+      isValid = password === plainPassword;
+    }
 
     if (isValid) {
       // 密码正确 - 重置失败计数
